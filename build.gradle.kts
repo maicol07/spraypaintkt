@@ -4,6 +4,3 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform).apply(false)
     alias(libs.plugins.jetbrainsKotlinJvm) apply false
 }
-
-group = "it.maicol07.spraypaintkt"
-version = "0.1.0"

@@ -5,6 +5,9 @@ plugins {
     id("maven-publish")
 }
 
+group = "it.maicol07.spraypaintkt"
+version = "0.1.0"
+
 kotlin {
     androidTarget {
         compilations.all {
@@ -23,7 +26,6 @@ kotlin {
     ).forEach {
         it.binaries.framework {
             baseName = "core"
-            isStatic = true
         }
     }
 
