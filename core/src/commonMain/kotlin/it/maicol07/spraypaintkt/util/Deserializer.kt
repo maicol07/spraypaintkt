@@ -1,7 +1,7 @@
-package eu.prepsoil.app.utils.jsonapiclient.util
+package it.maicol07.spraypaintkt.util
 
-import eu.prepsoil.app.utils.jsonapiclient.JsonApiResource
-import eu.prepsoil.app.utils.jsonapiclient.Resource
+import it.maicol07.spraypaintkt.JsonApiResource
+import it.maicol07.spraypaintkt.Resource
 
 class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
     private val cache = mutableMapOf<Pair<String, String>, Resource>()

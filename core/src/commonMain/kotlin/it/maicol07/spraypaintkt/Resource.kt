@@ -1,6 +1,6 @@
-package eu.prepsoil.app.utils.jsonapiclient
+package it.maicol07.spraypaintkt
 
-import eu.prepsoil.app.utils.jsonapiclient.util.Deserializer
+import it.maicol07.spraypaintkt.util.Deserializer
 import it.maicol07.spraypaintkt.util.pluralize
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty

@@ -1,8 +1,5 @@
 package it.maicol07.spraypaintkt
 
-import eu.prepsoil.app.utils.jsonapiclient.JsonApiCollectionResponse
-import eu.prepsoil.app.utils.jsonapiclient.JsonApiSingleResponse
-import eu.prepsoil.app.utils.jsonapiclient.Resource
 import it.maicol07.spraypaintkt.extensions.JsonObjectMap
 import it.maicol07.spraypaintkt.extensions.extractedContent
 import kotlinx.serialization.SerializationException

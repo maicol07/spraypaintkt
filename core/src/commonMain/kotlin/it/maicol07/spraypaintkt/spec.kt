@@ -1,6 +1,6 @@
 @file:Suppress("UNCHECKED_CAST")
 
-package eu.prepsoil.app.utils.jsonapiclient
+package it.maicol07.spraypaintkt
 
 abstract class JsonApiResponse(
     response: Map<String, Any>,

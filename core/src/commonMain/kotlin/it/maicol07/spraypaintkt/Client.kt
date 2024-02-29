@@ -1,7 +1,6 @@
 package it.maicol07.spraypaintkt
 
-import eu.prepsoil.app.utils.jsonapiclient.Resource
-import eu.prepsoil.app.utils.jsonapiclient.util.Deserializer
+import it.maicol07.spraypaintkt.util.Deserializer
 import it.maicol07.spraypaintkt.http.HttpClient
 
 @Suppress("unused")
