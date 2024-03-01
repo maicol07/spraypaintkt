@@ -1,8 +1,10 @@
+import com.vanniktech.maven.publish.SonatypeHost
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     kotlin("plugin.serialization") version libs.versions.kotlin.get()
-    id("maven-publish")
+    id("com.vanniktech.maven.publish") version "0.27.0"
 }
 
 group = "it.maicol07.spraypaintkt"
@@ -51,10 +53,35 @@ android {
     }
 }
 
-publishing {
-    repositories {
-        maven {
-            //...
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.DEFAULT)
+
+    signAllPublications()
+    coordinates(group.toString(), name, version.toString())
+
+    pom {
+        name = "Spraypaint.Kt"
+        description = "A Kotlin Multiplatform library to interact with JSON:API compliant APIs"
+        inceptionYear = "2024"
+        url = "https://github.com/maicol07/spraypaintkt"
+        licenses {
+            license {
+                name = "The Apache License, Version 2.0"
+                url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                distribution = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+            }
+        }
+        developers {
+            developer {
+                id = "maicol07"
+                name = "Maicol Battistini"
+                url = "https://maicol07.it"
+            }
+        }
+        scm {
+            url = "https://github.com/maicol07/spraypaintkt"
+            connection = "scm:git:git://github.com/maicol07/spraypaintkt.git"
+            developerConnection = "scm:git:ssh://git@github.com/maicol07/spraypaintkt.git"
         }
     }
 }
