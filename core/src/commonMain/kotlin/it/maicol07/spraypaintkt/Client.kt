@@ -5,7 +5,7 @@ import it.maicol07.spraypaintkt.http.HttpClient
 
 @Suppress("unused")
 class Client(
-    baseUrl: String = "https://demo4.trust-it.it/jsonapi",
+    baseUrl: String,
     apiNamespace: String = "/",
     val paginationStrategy: PaginationStrategy = PaginationStrategy.PAGE_BASED,
     val httpClient: HttpClient,
