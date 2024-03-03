@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform).apply(false)
     alias(libs.plugins.jetbrainsKotlinJvm) apply false
     id("com.gradleup.nmcp").version("0.0.4")
+    id("com.vanniktech.maven.publish") version "0.27.0" apply false
 }
 
 nmcp {
