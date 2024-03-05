@@ -35,9 +35,9 @@ jobs:
 
           - name : Add signing key to Gradle
             run: |
-                echo "\nsigning.keyId=${{ secrets.GPG_KEY_ID }}\n" >> gradle.properties
-                echo "signing.password=${{ secrets.GPG_KEY_PASSPHRASE }}\n" >> gradle.properties
-                echo "signing.secretKeyRingFile=~/.gnupg/secring.gpg" >> gradle.properties
+                echo "signing.keyId=${{ secrets.GPG_KEY_ID }}\n" > ~/.gradle/gradle.properties
+                echo "signing.password=${{ secrets.GPG_KEY_PASSPHRASE }}\n" >> ~/.gradle/gradle.properties
+                echo "signing.secretKeyRingFile=~/.gnupg/secring.gpg" >> ~/.gradle/gradle.properties
 
           - name: Sync dependencies
             run: ./gradlew --no-daemon --info sync
