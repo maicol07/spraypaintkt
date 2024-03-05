@@ -40,7 +40,7 @@ jobs:
                 echo "signing.secretKeyRingFile=~/.gnupg/secring.gpg" >> ~/.gradle/gradle.properties
 
           - name: Sync dependencies
-            run: ./gradlew --no-daemon --info sync
+            run: ./gradlew sync
 
           - name: Build with Gradle
             run: ./gradlew build
