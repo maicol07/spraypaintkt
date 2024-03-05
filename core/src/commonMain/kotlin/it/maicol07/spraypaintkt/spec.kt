@@ -64,6 +64,7 @@ class JsonApiRelationship(
 
         list
     }
+    val isSingle: Boolean by lazy { response["data"] is Map<*, *> }
     val links = response.getOrElse("links") { null } as? JsonApiRelationshipLinks
     val meta = response.getOrElse("meta") { null } as? Map<String, Any>
 }

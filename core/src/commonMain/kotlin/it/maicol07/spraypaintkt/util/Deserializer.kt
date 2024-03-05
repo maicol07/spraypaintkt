@@ -14,8 +14,8 @@ class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
 
         model.attributes.putAll(datum.attributes)
 
-        for ((key, value) in datum.relationships) {
-            val relationData = value?.data
+        for ((key, relationship) in datum.relationships) {
+            val relationData = relationship?.data
             if (relationData != null) {
                 val relatedResources = mutableListOf<Resource>()
 
@@ -33,7 +33,7 @@ class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
                     }
                 }
 
-                if (relatedResources.size == 1) {
+                if (relatedResources.size == 1 && relationship.isSingle) {
                     model.relationships[key] = relatedResources.first()
                 } else {
                     model.relationships[key] = relatedResources
