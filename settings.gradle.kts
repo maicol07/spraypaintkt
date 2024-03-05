@@ -15,6 +15,9 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "spraypaintkt"
+
 include(":core")
 include(":ktor-integration")
 include(":koin-integration")
+include(":annotation")
+include(":processor")

@@ -21,9 +21,16 @@ nmcp {
             username = ""
             password = ""
         }
+
+        // Load from env
+        username = System.getenv("MAVEN_CENTRAL_USERNAME") ?: username.get()
+        password = System.getenv("MAVEN_CENTRAL_PASSWORD") ?: password.get()
+
         // publish manually from the portal
         publicationType = "USER_MANAGED"
         // or if you want to publish automatically
         publicationType = "AUTOMATIC"
     }
 }
+
+rootProject.extra.set("libVersion", System.getenv("LIB_VERSION") ?: "0.1.0")

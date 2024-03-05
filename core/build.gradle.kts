@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "it.maicol07.spraypaintkt"
-version = "0.1.0"
+version = rootProject.extra.get("libVersion")!!
 
 kotlin {
     androidTarget {

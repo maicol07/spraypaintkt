@@ -1,0 +1,50 @@
+name: "Snapshot build"
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+    build:
+        runs-on: macos-latest
+        env:
+          # Use commit hash as lib version
+          LIB_VERSION: ${{ github.sha }}-SNAPSHOT
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        steps:
+          - name: Import GPG key
+            uses: crazy-max/ghaction-import-gpg@v6
+            with:
+              gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+              passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
+              trust_level: 5
+
+          - name: Checkout
+            uses: actions/checkout@v2
+
+          - name: Setup Gradle and JDK 21
+            uses: actions/setup-java@v1
+            with:
+              java-version: 21
+
+          - name: Add signing key to Gradle
+            run:
+                echo "signing.keyId=${{ secrets.GPG_KEY_ID }}" >> gradle.properties
+                echo "signing.password=${{ secrets.GPG_KEY_PASSPHRASE }}" >> gradle.properties
+                echo "signing.secretKeyRingFile=~/.gnupg/secring.gpg" >> gradle.properties
+
+          - name: Sync dependencies
+            run: ./gradlew --no-daemon --info sync
+
+          - name: Build with Gradle
+            run: ./gradlew build
+
+          - name: Upload artifact
+            uses: actions/upload-artifact@v2
+            with:
+              name: snapshot
+              path: build/libs/*.jar
+
+          - name: Publish
+            run: ./gradlew publishAllPublicationsToCentralPortal
