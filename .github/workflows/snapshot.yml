@@ -33,8 +33,8 @@ jobs:
 
           - run: chmod +x ./gradlew
 
-          - name: Add signing key to Gradle
-            run:
+          - name : Add signing key to Gradle
+            run: |
                 echo "\nsigning.keyId=${{ secrets.GPG_KEY_ID }}\n" >> gradle.properties
                 echo "signing.password=${{ secrets.GPG_KEY_PASSPHRASE }}\n" >> gradle.properties
                 echo "signing.secretKeyRingFile=~/.gnupg/secring.gpg" >> gradle.properties
