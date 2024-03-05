@@ -37,4 +37,15 @@ abstract class Resource(
             relationships[name] = value as Any
         }
     }
+    @Suppress("ktPropBy")
+    protected fun <R: Resource, RL: List<R>, RO: Resource> RO.hasManyRelationship(name: String) = object : ReadWriteProperty<RO, RL> {
+        override fun getValue(thisRef: RO, property: KProperty<*>): RL {
+            @Suppress("UNCHECKED_CAST")
+            return relationships[name] as RL
+        }
+
+        override fun setValue(thisRef: RO, property: KProperty<*>, value: RL) {
+            relationships[name] = value as Any
+        }
+    }
 }
