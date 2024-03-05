@@ -27,13 +27,7 @@ jobs:
 
           - run: chmod +x ./gradlew
 
-          - name: Upload artifact
-            uses: actions/upload-artifact@v4
-            with:
-              name: snapshot.zip
-              path: '**/build/libs/*.jar'
-
-          - name: Publish
+          - name: Build & Publish
             run: ./gradlew publishAllPublicationsToGithubPackagesRepository
             env:
               LIB_VERSION: ${{ steps.short-sha.outputs.sha }}-SNAPSHOT
@@ -42,3 +36,9 @@ jobs:
               ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_KEY_PASSPHRASE }}
               ORG_GRADLE_PROJECT_githubPackagesUsername: ${{ github.repository_owner }}
               ORG_GRADLE_PROJECT_githubPackagesPassword: ${{ secrets.GITHUB_TOKEN }}
+
+          - name: Upload artifact
+            uses: actions/upload-artifact@v4
+            with:
+              name: snapshot.zip
+              path: '**/build/libs/*.jar'
