@@ -12,6 +12,9 @@ jobs:
           LIB_VERSION: ${{ github.sha }}-SNAPSHOT
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_PRIVATE_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.GPG_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemorySecretKeyPassword: ${{ secrets.GPG_KEY_PASSPHRASE }}
         steps:
           - name: Import GPG key
             uses: crazy-max/ghaction-import-gpg@v6
@@ -33,15 +36,6 @@ jobs:
 
           - run: chmod +x ./gradlew
 
-          - name : Add signing key to Gradle
-            run: |
-                echo "signing.keyId=${{ secrets.GPG_KEY_ID }}\n" > ~/.gradle/gradle.properties
-                echo "signing.password=${{ secrets.GPG_KEY_PASSPHRASE }}\n" >> ~/.gradle/gradle.properties
-                echo "signing.secretKeyRingFile=~/.gnupg/secring.gpg" >> ~/.gradle/gradle.properties
-
-#          - name: Sync dependencies
-#            run: ./gradlew sync
-
           - name: Build with Gradle
             run: ./gradlew build
 
@@ -49,7 +43,7 @@ jobs:
             uses: actions/upload-artifact@v2
             with:
               name: snapshot
-              path: build/libs/*.jar
+              path: '**/build/libs/*.jar'
 
           - name: Publish
             run: ./gradlew publishAllPublicationsToCentralPortal
