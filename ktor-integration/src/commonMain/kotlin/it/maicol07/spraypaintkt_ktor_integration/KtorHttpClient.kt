@@ -1,4 +1,4 @@
-package it.maicol07.ktor_integration
+package it.maicol07.spraypaintkt_ktor_integration
 
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig

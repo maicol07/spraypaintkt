@@ -1,4 +1,4 @@
-package it.maicol07.koin_integration
+package it.maicol07.spraypaintkt_koin_integration
 
 import it.maicol07.spraypaintkt.Resource
 import it.maicol07.spraypaintkt.ModelGenerator
