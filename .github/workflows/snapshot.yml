@@ -39,8 +39,8 @@ jobs:
                 echo "signing.password=${{ secrets.GPG_KEY_PASSPHRASE }}\n" >> ~/.gradle/gradle.properties
                 echo "signing.secretKeyRingFile=~/.gnupg/secring.gpg" >> ~/.gradle/gradle.properties
 
-          - name: Sync dependencies
-            run: ./gradlew sync
+#          - name: Sync dependencies
+#            run: ./gradlew sync
 
           - name: Build with Gradle
             run: ./gradlew build
