@@ -11,6 +11,28 @@ Add the following to the common dependencies of your `build.gradle.kts` file:
 implementation("it.maicol07.spraypaintkt:core:$latest_version")
 ```
 
+## Snapshots
+You can find snapshots on [Github Packages](https://github.com/maicol07?tab=packages&repo_name=spraypaintkt).
+To use them, you need to add the following to your `settings.gradle.kts` file in the `dependencyResolutionManagement` block:
+```kotlin
+repositories {
+    maven {
+        url = uri("https://maven.pkg.github.com/maicol07/spraypaintkt")
+        credentials {
+            username = project.findProperty("gpr.user") as String? ?: System.getenv("USERNAME")
+            password = project.findProperty("gpr.key") as String? ?: System.getenv("TOKEN")
+        }
+    }
+}
+```
+Then, you have to add your username and a personal access token to your `local.properties` file:
+```properties
+gpr.user=USERNAME
+gpr.key=TOKEN
+```
+> [!NOTE]
+> More info can be found [here](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry#using-a-published-package)
+
 # Usage
 
 ## Configuration
@@ -84,7 +106,7 @@ class User : Resource() {
 ```
 To-One relationships are automatically converted to the correct type, while To-Many relationships are always converted to a `List` (with the model type in generics).
 
-> Note:
+> [!IMPORTANT]
 > You need to register the related models in the `Client` instance and include them in the request to be able to resolve the relationships (see below).
 
 ### Customizing the model
@@ -171,7 +193,7 @@ val response = client.includes("posts", "comments").all<User>()
 val user = response.data
 ```
 
-> Note:
+> [!CAUTION]
 > Only if you include the relationships in the request, the library will be able to resolve them in your model.
 
 
