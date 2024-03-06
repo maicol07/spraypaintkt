@@ -2,7 +2,6 @@ package it.maicol07.spraypaintkt_ktor_integration
 
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
-import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -15,7 +14,7 @@ import it.maicol07.spraypaintkt.http.HttpResponse
 
 class KtorHttpClient(
     httpClientOptions: HttpClientConfig<*>.() -> Unit = {},
-    val httpClient: HttpClient = HttpClient(CIO, httpClientOptions)
+    val httpClient: HttpClient = HttpClient(httpClientOptions)
 ): it.maicol07.spraypaintkt.http.HttpClient {
     override suspend fun get(url: String, parameters: Map<String, String>): HttpResponse {
         val response = httpClient.get(url) {

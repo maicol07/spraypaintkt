@@ -32,7 +32,6 @@ kotlin {
     commonMain.dependencies {
       api(projects.core)
       implementation(libs.ktor.client.core)
-      implementation(libs.ktor.client.cio)
     }
   }
 }
