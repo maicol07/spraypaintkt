@@ -15,7 +15,6 @@ kotlin {
             kotlinOptions {
                 jvmTarget = "1.8"
             }
-            publishLibraryVariants("release", "debug")
         }
     }
 
