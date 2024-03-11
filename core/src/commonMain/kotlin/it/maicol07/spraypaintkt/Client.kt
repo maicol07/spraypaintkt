@@ -6,7 +6,7 @@ import it.maicol07.spraypaintkt.http.HttpClient
 @Suppress("unused")
 class Client(
     baseUrl: String,
-    apiNamespace: String = "/",
+    apiNamespace: String = "",
     val paginationStrategy: PaginationStrategy = PaginationStrategy.PAGE_BASED,
     val httpClient: HttpClient,
     val modelGenerator: ModelGenerator
@@ -83,8 +83,8 @@ class Client(
     }
 
     fun <R: Resource> urlForResource(resource: R, id: String? = null): String {
-        val endpoint = resource.endpoint ?: "/${resource.type}"
+        val endpoint = resource.endpoint ?: resource.type
         val effectiveId = id ?: resource.id
-        return "$fullBasePath$endpoint${effectiveId?.let { "/$it" } ?: ""}"
+        return "$fullBasePath/$endpoint${effectiveId?.let { "/$it" } ?: ""}"
     }
 }
