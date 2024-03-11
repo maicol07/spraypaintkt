@@ -38,7 +38,7 @@ gpr.key=TOKEN
 ## Configuration
 ### HTTP Client
 You can use any HTTP client you want, as long as you wrap it in a `HttpClient` implementation.
-The library provides a Ktor integration (see [Ktor Integration]())
+The library provides a Ktor integration (see [Ktor Integration](#ktor))
 
 ```kotlin
 class HttpClientImpl : HttpClient {
@@ -48,7 +48,7 @@ class HttpClientImpl : HttpClient {
 
 ### Model generator
 Since Kotlin Multiplatform doesn't support reflection, you need create a class that implements `ModelGenerator` and returns the new instance of the model.
-The library provides a Koin integration (see [Koin Integration]())
+The library provides a Koin integration (see [Koin Integration](#koin))
 
 ```kotlin
 class ModelGeneratorImpl : ModelGenerator {
