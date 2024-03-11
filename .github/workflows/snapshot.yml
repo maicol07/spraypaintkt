@@ -4,14 +4,15 @@ on:
     branches:
       - main
 
+permissions:
+  packages: write
+
 jobs:
   test:
     uses: "./.github/workflows/test.yml"
   build_publish:
     needs: test
     runs-on: macos-14
-    permissions:
-      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
