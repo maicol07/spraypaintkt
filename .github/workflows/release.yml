@@ -1,0 +1,46 @@
+name: Release
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  test:
+    uses: "./.github/workflows/test.yml"
+  build_publish:
+    needs: test
+    runs-on: macos-14
+    permissions:
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - run: chmod +x ./gradlew
+
+      - name: Build & Publish
+        run: ./gradlew publishAllPublicationsToCentralPortal
+        env:
+          LIB_VERSION: ${{ github.event.release.tag_name }}
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_ARMORED_PRIVATE_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.GPG_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_KEY_PASSPHRASE }}
+          ORG_GRADLE_PROJECT_githubPackagesUsername: ${{ github.repository_owner }}
+          ORG_GRADLE_PROJECT_githubPackagesPassword: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release.zip
+          path: '**/build/libs/*.jar'
