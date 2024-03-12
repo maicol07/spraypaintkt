@@ -2,7 +2,7 @@ package it.maicol07.spraypaintkt.tests.models
 
 import it.maicol07.spraypaintkt.Resource
 
-class Tag: Resource("tags") {
+class Tag: Resource() {
     val name: String by attributes
     val description: String by attributes
     val slug: String by attributes

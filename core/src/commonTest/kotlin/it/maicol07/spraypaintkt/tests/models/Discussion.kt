@@ -2,7 +2,7 @@ package it.maicol07.spraypaintkt.tests.models
 
 import it.maicol07.spraypaintkt.Resource
 
-class Discussion: Resource("discussions") {
+class Discussion: Resource() {
     val title: String by attributes
     val slug: String by attributes
     val commentCount: Int? by attributes

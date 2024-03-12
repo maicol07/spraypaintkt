@@ -2,7 +2,7 @@ package it.maicol07.spraypaintkt.tests.models
 
 import it.maicol07.spraypaintkt.Resource
 
-class Post: Resource("posts") {
+class Post: Resource() {
     val title: String by attributes
     val content: String by attributes
     val createdAt: String by attributes

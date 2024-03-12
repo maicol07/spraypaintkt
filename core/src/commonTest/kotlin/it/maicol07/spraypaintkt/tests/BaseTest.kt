@@ -37,9 +37,9 @@ abstract class BaseTest {
 
     @BeforeTest
     fun setup() {
-        client.registerResource<Discussion>("discussions")
-        client.registerResource<Tag>("tags")
-        client.registerResource<User>("users")
+        client.registerResource<Discussion>()
+        client.registerResource<Tag>()
+        client.registerResource<User>()
         client.registerResource<Post>()
         client.registerResource<Group>()
     }
