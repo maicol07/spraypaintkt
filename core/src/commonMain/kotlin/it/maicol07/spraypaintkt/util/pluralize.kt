@@ -1,5 +1,9 @@
 package it.maicol07.spraypaintkt.util
 
+/**
+ * @source https://github.com/cesarferreira/kotlin-pluralizer/blob/master/library/src/main/kotlin/com/cesarferreira/pluralize/Pluralize.kt
+ */
+
 import kotlin.math.abs
 
 fun String.pluralize(count: Int = 2): String {
@@ -13,7 +17,7 @@ fun String.singularize(count: Int = 1): String = pluralize(count)
 
 private fun String.pluralizer(): String {
     if (unCountable().contains(this.lowercase())) return this
-    val rule = pluralizeRules().last { it.first.toRegex(RegexOption.IGNORE_CASE).matches(this) }
+    val rule = pluralizeRules().last { it.first.toRegex(RegexOption.IGNORE_CASE).containsMatchIn(this) }
     var found = rule.first.toRegex(RegexOption.IGNORE_CASE).replace(this, rule.second)
     val endsWith = exceptions().firstOrNull { this.endsWith(it.first) }
     if (endsWith != null) found = this.replace(endsWith.first, endsWith.second)
@@ -37,8 +41,8 @@ private fun String.singularizer(): String {
     if (endsWith != null) return this.replace(endsWith.second, endsWith.first)
 
     try {
-        if (singularizeRules().count { it.first.toRegex(RegexOption.IGNORE_CASE).matches(this) } == 0) return this
-        val rule = singularizeRules().last { it.first.toRegex(RegexOption.IGNORE_CASE).matches(this) }
+        if (singularizeRules().count { it.first.toRegex(RegexOption.IGNORE_CASE).containsMatchIn(this) } == 0) return this
+        val rule = singularizeRules().last { it.first.toRegex(RegexOption.IGNORE_CASE).containsMatchIn(this) }
         return rule.first.toRegex(RegexOption.IGNORE_CASE).replace(this, rule.second)
     } catch(ex: IllegalArgumentException) {
         throw RuntimeException("Can't singularize this word, could not find a rule to match.")
@@ -116,7 +120,7 @@ fun exceptions(): List<Pair<String, String>> {
 
 fun pluralizeRules(): List<Pair<String, String>> {
     return listOf(
-        "$" to "s",
+        "(.)$" to "$1s",
         "s$" to "s",
         "(ax|test)is$" to "$1es",
         "us$" to "i",

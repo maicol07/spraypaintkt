@@ -16,7 +16,7 @@ abstract class Resource(
     val relationships: MutableMap<String, Any> = mutableMapOf()
     val meta: MutableMap<String, Any> = mutableMapOf()
     val type: String
-        get() = resourceType ?: this::class.simpleName?.pluralize() ?: ""
+        get() = resourceType ?: this::class.simpleName?.lowercase()?.pluralize() ?: ""
 
     fun fromJsonApi(jsonApiData: JsonApiResource, included: List<JsonApiResource>, deserializer: Deserializer) {
         deserializer.deserialize(this, jsonApiData, included)
