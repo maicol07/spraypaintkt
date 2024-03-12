@@ -5,8 +5,8 @@ kotlin = "1.9.22"
 kotlinxCoroutinesTest = "1.8.0"
 kotlinxSerializationJson = "1.6.3"
 ktor = "2.3.9"
-jetbrainsKotlinJvm = "1.9.0"
 logbackClassic = "1.5.3"
+mavenPublish = "0.28.0-rc1"
 
 [libraries]
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
@@ -20,5 +20,4 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "lo
 
 [plugins]
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
-kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-jetbrainsKotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
+mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }

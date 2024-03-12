@@ -1,9 +1,9 @@
 import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
+    kotlin("multiplatform")
     alias(libs.plugins.androidLibrary)
-    id("com.vanniktech.maven.publish") version "0.27.0"
+    alias(libs.plugins.mavenPublish)
 }
 
 group = "it.maicol07.spraypaintkt"
@@ -44,7 +44,7 @@ android {
 
 
 mavenPublishing {
-    publishToMavenCentral(SonatypeHost.DEFAULT)
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 
     signAllPublications()
     coordinates(group.toString(), name, version.toString())
