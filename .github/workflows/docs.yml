@@ -23,6 +23,9 @@ jobs:
           java-version: 21
           distribution: 'temurin'
 
+
+      - run: chmod +x ./gradlew
+
       - name: Build documentation
         run: ./gradlew dokkaHtml
       - name: Upload GitHub Pages artifact
