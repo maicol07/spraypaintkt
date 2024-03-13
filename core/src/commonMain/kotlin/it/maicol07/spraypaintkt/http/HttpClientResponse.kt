@@ -1,6 +1,6 @@
 package it.maicol07.spraypaintkt.http
 
-data class HttpResponse(
-    val statusCode: Int,
+interface HttpClientResponse {
+    val statusCode: Int
     val body: String
-)
+}
