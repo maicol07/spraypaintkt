@@ -7,6 +7,7 @@ kotlinxSerializationJson = "1.6.3"
 ktor = "2.3.9"
 logbackClassic = "1.5.3"
 mavenPublish = "0.28.0-rc1"
+dokka = "1.9.10"
 
 [libraries]
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
@@ -21,3 +22,4 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "lo
 [plugins]
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
 mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }

@@ -5,6 +5,7 @@ plugins {
     kotlin("plugin.serialization")
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.mavenPublish)
+    id("org.jetbrains.dokka")
 }
 
 group = "it.maicol07.spraypaintkt"
@@ -103,5 +104,13 @@ publishing {
             // environment variables
             credentials(PasswordCredentials::class)
         }
+    }
+}
+
+tasks{
+    register<Jar>("dokkaJar") {
+        from(dokkaHtml)
+        dependsOn(dokkaHtml)
+        archiveClassifier.set("javadoc")
     }
 }
