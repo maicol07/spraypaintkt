@@ -15,6 +15,7 @@ import kotlin.reflect.KClass
 import kotlin.test.BeforeTest
 
 abstract class BaseTest {
+    @Suppress("UNCHECKED_CAST")
     val client = Client(
         baseUrl = "https://discuss.flarum.org/api",
         modelGenerator = object : ModelGenerator {

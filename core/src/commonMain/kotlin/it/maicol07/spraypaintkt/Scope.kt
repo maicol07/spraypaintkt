@@ -151,8 +151,8 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
         pagination.offset?.let { params.put("page[offset]", it.toString()) }
 
         val response = client.httpClient.get(url, params)
-        if (response.statusCode != 200) {
-            throw RuntimeException("JSONAPI Request failed with status ${response.statusCode}")
+        if (response.statusCode >= 400) {
+            throw JsonApiException(response.statusCode, response.body)
         }
 
         try {

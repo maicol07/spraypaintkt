@@ -84,12 +84,19 @@ class Client(
             val url = urlForResource(resource)
             httpClient.post(url, resource.toJsonApiString())
         }
-        return response.statusCode in listOf(200, 204)
+        if (response.statusCode !in listOf(200, 204)) {
+            throw JsonApiException(response.statusCode, response.body)
+        }
+        return true
     }
 
     suspend fun <R: Resource> destroy(resource: R): Boolean {
         val url = urlForResource(resource, resource.id)
-        return httpClient.delete(url).statusCode in listOf(200, 204)
+        val response = httpClient.delete(url)
+        if (response.statusCode !in listOf(200, 204)) {
+            throw JsonApiException(response.statusCode, response.body)
+        }
+        return true
     }
 
     inline fun <reified R: Resource> registerResource(type: String? = null): Client {

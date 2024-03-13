@@ -242,6 +242,19 @@ if (result) {
 }
 ```
 
+# Exceptions
+The library provides a `JsonApiException` class, which is thrown when the JSONAPI server returns an error.
+You can catch it and handle it as you want:
+
+```kotlin
+try {
+    val user = client.find<User>(1).data
+} catch (e: JsonApiException) {
+    // Handle the exception
+    println(e.errors)
+}
+```
+
 # Integrations
 ## Ktor
 The library provides a Ktor integration, which allows you to use the `HttpClient` implementation provided by Ktor.

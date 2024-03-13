@@ -2,6 +2,7 @@ import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     kotlin("multiplatform")
+    kotlin("plugin.serialization")
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.mavenPublish)
 }
