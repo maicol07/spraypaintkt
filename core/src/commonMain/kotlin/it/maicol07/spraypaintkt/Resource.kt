@@ -14,7 +14,9 @@ abstract class Resource(
 
     val attributes = object : MutableMap<String, Any?> by mutableMapOf() {}
     val relationships: MutableMap<String, Any> = mutableMapOf()
-    val meta: MutableMap<String, Any> = mutableMapOf()
+    val meta: MutableMap<String, Any?> = mutableMapOf()
+    val links: MutableMap<String, Any?> = mutableMapOf()
+
     val type: String
         get() = resourceType ?: this::class.simpleName?.lowercase()?.pluralize() ?: ""
 

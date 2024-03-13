@@ -41,6 +41,9 @@ class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
             }
         }
 
+        model.links.putAll(datum.links)
+        model.meta.putAll(datum.meta)
+
         return model
     }
 }

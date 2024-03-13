@@ -45,8 +45,8 @@ class JsonApiResource(
             (it as Map<String, Map<String, Any>>).mapValues { JsonApiRelationship(it.value) }
         } ?: emptyMap()
     }
-    val links: Map<String, Any?> by response
-    val meta: Map<String, Any?> by response
+    val links: Map<String, Any?> by lazy { response.getOrElse("links") { emptyMap<String, Any>() } as Map<String, Any> }
+    val meta: Map<String, Any?> by lazy { response.getOrElse("meta") { emptyMap<String, Any>() } as Map<String, Any> }
 }
 
 class JsonApiRelationship(
