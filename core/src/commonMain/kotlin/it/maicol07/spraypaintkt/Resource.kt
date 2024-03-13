@@ -53,10 +53,17 @@ abstract class Resource(
      *
      * @param name The name of the attribute.
      */
-    protected fun <T> attribute(name: String) = lazy { attributes[name]?.let {
-        @Suppress("UNCHECKED_CAST")
-        it as T
-    } }
+    @Suppress("ktPropBy")
+    protected fun <R: Resource, T> R.attribute(name: String) = object : ReadWriteProperty<R, T?> {
+        override fun getValue(thisRef: R, property: KProperty<*>): T? {
+            @Suppress("UNCHECKED_CAST")
+            return attributes[name] as T?
+        }
+
+        override fun setValue(thisRef: R, property: KProperty<*>, value: T?) {
+            attributes[name] = value as Any
+        }
+    }
 
     /**
      * Delegate for relationships. Let you specify the name of the relationship to delegate to.
