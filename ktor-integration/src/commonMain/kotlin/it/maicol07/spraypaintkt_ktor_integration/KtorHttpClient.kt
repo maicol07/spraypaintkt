@@ -5,6 +5,7 @@ import io.ktor.client.HttpClientConfig
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -21,6 +22,24 @@ class KtorHttpClient(
             for ((key, value) in parameters) {
                 parameter(key, value)
             }
+        }
+        return HttpResponse(
+            response.status.value,
+            response.bodyAsText()
+        )
+    }
+
+    override suspend fun patch(
+        url: String,
+        body: String,
+        parameters: Map<String, String>
+    ): HttpResponse {
+        val response = httpClient.patch(url) {
+            for ((key, value) in parameters) {
+                parameter(key, value)
+            }
+            contentType(ContentType.Application.Json)
+            setBody(body)
         }
         return HttpResponse(
             response.status.value,

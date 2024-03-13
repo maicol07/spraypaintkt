@@ -208,13 +208,39 @@ val user = response.data
 
 
 ## Creating
-// TODO
+You can create a new resource creating a new resource, filling all the attributes and relationships and then calling the `save` method:
+
+```kotlin
+val user = User()
+user.name = "John"
+user.email = "john@doe.com"
+val result = client.save(user)
+if (result) {
+    // The resource has been created
+}
+```
 
 ## Updating
-// TODO
+You can update a resource by modifying the attributes and relationships and then calling the `save` method:
+
+```kotlin
+val user = client.find<User>(1).data
+user.name = "John Doe"
+val result = client.save(user)
+if (result) {
+    // The resource has been updated
+}
+```
 
 ## Deleting
-// TODO
+To delete a resource, you can use the `destroy` method:
+
+```kotlin
+val result = client.destroy(user)
+if (result) {
+    // The resource has been deleted
+}
+```
 
 # Integrations
 ## Ktor

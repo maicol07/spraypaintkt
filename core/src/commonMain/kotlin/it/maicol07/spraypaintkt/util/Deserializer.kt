@@ -10,7 +10,7 @@ class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
 
 //        Logger.d("Deserializer") { "Deserializing ${model.type} with id ${datum.id}" }
         model.id = datum.id
-//        model.tempId = datum["temp-id"]?.extractedContent.toString()
+        model.isPersisted = true
 
         model.attributes.putAll(datum.attributes)
 

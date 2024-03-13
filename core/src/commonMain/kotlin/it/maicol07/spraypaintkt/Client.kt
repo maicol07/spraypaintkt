@@ -76,6 +76,22 @@ class Client(
         return scope().first<R>()
     }
 
+    suspend fun <R: Resource> save(resource: R): Boolean {
+        val response = if (resource.isPersisted) {
+            val url = urlForResource(resource, resource.id)
+            httpClient.patch(url, resource.toJsonApiString())
+        } else {
+            val url = urlForResource(resource)
+            httpClient.post(url, resource.toJsonApiString())
+        }
+        return response.statusCode in listOf(200, 204)
+    }
+
+    suspend fun <R: Resource> destroy(resource: R): Boolean {
+        val url = urlForResource(resource, resource.id)
+        return httpClient.delete(url).statusCode in listOf(200, 204)
+    }
+
     inline fun <reified R: Resource> registerResource(type: String? = null): Client {
         val resource = modelGenerator.generate(R::class)
         typeRegistry[type ?: resource.type] = { modelGenerator.generate(R::class) }
