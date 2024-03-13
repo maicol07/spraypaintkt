@@ -109,6 +109,16 @@ To-One relationships are automatically converted to the correct type, while To-M
 > [!IMPORTANT]
 > You need to register the related models in the `Client` instance and include them in the request to be able to resolve the relationships (see below).
 
+If you wish to use a different property name than the one returned by the API, you can use the `relationship` and `hasManyRelationship` delegate:
+
+```kotlin
+class User : Resource() {
+    val posts: List<Post> by hasManyrelationship("user_posts")
+    val comments: List<Comment> by hasManyrelationship("user_comments")
+    val membership: Membership by relationship("user_membership")
+}
+```
+
 ### Customizing the model
 You can customize the model by setting the `type` and `endpoint` properties when extending the `Resource` class:
 
