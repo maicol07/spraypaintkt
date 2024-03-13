@@ -3,8 +3,25 @@ package it.maicol07.spraypaintkt.util
 import it.maicol07.spraypaintkt.JsonApiResource
 import it.maicol07.spraypaintkt.Resource
 
+/**
+ * Deserializer for JSON:API resources.
+ *
+ * @param typeRegistry The type registry to use.
+ */
 class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
+    /**
+     * Cache for deserialized resources.
+     */
     private val cache = mutableMapOf<Pair<String, String>, Resource>()
+
+    /**
+     * Deserializes a JSON:API resource into a [Resource] object.
+     *
+     * @param model The [Resource] object to deserialize into.
+     * @param datum The JSON:API resource to deserialize.
+     * @param included The included resources.
+     * @return The deserialized [Resource] object.
+     */
     fun <R: Resource> deserialize(model: R, datum: JsonApiResource, included: List<JsonApiResource>): R {
         // already
 

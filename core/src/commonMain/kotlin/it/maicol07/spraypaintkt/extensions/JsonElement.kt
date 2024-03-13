@@ -52,6 +52,9 @@ val JsonElement.extractedContent: Any?
         return null
     }
 
+/**
+ * Converts [Any]? to a [JsonElement].
+ */
 fun Any?.toJsonElement(): JsonElement = when(this) {
     null -> JsonNull
     is Map<*, *> -> toJsonElement()
@@ -74,6 +77,9 @@ fun Any?.toJsonElement(): JsonElement = when(this) {
     }
 }
 
+/**
+ * Converts [Map]<*, *> to a [JsonElement].
+ */
 fun  Map<*, *>.toJsonElement(): JsonElement {
     val map = mutableMapOf<String, JsonElement>()
     for ((key, value) in this) {
@@ -83,10 +89,16 @@ fun  Map<*, *>.toJsonElement(): JsonElement {
     return JsonObject(map)
 }
 
+/**
+ * Converts [Collection]<*> to a [JsonElement].
+ */
 fun Collection<*>.toJsonElement(): JsonElement {
     return JsonArray(this.map { it.toJsonElement() })
 }
 
+/**
+ * Converts [Array]<*> to a [JsonElement].
+ */
 fun Array<*>.toJsonElement(): JsonElement {
     return JsonArray(this.map { it.toJsonElement() })
 }

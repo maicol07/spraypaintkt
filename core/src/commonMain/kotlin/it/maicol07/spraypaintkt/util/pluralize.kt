@@ -6,6 +6,9 @@ package it.maicol07.spraypaintkt.util
 
 import kotlin.math.abs
 
+/**
+ * Pluralize a string
+ */
 fun String.pluralize(count: Int = 2): String {
     return if (abs(count)!= 1)
         this.pluralizer()
@@ -13,8 +16,14 @@ fun String.pluralize(count: Int = 2): String {
         this.singularizer()
 }
 
+/**
+ * Singularize a string
+ */
 fun String.singularize(count: Int = 1): String = pluralize(count)
 
+/**
+ * Pluralize a string
+ */
 private fun String.pluralizer(): String {
     if (unCountable().contains(this.lowercase())) return this
     val rule = pluralizeRules().last { it.first.toRegex(RegexOption.IGNORE_CASE).containsMatchIn(this) }
@@ -26,6 +35,9 @@ private fun String.pluralizer(): String {
     return found
 }
 
+/**
+ * Singularize a string
+ */
 @Throws(RuntimeException::class)
 private fun String.singularizer(): String {
     if (unCountable().contains(this.lowercase())) {
@@ -49,6 +61,9 @@ private fun String.singularizer(): String {
     }
 }
 
+/**
+ * List of uncountable words
+ */
 fun unCountable(): List<String> {
     return listOf("equipment", "information", "rice", "money",
         "species", "series", "fish", "sheep", "aircraft", "bison",
@@ -63,6 +78,9 @@ fun unCountable(): List<String> {
         "wildebeest", "elk", "pincers", "sugar")
 }
 
+/**
+ * List of exceptions
+ */
 fun exceptions(): List<Pair<String, String>> {
     return listOf("person" to "people",
         "man" to "men",
@@ -118,6 +136,9 @@ fun exceptions(): List<Pair<String, String>> {
         "foot" to "feet")
 }
 
+/**
+ * List of pluralization rules
+ */
 fun pluralizeRules(): List<Pair<String, String>> {
     return listOf(
         "(.)$" to "$1s",
@@ -149,6 +170,9 @@ fun pluralizeRules(): List<Pair<String, String>> {
         "sion" to "sions")
 }
 
+/**
+ * List of singularization rules
+ */
 fun singularizeRules(): List<Pair<String, String>> {
     return listOf(
         "s$" to "",
