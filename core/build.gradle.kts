@@ -5,7 +5,7 @@ plugins {
     kotlin("plugin.serialization")
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.mavenPublish)
-    id("org.jetbrains.dokka")
+    alias(libs.plugins.dokka)
 }
 
 group = "it.maicol07.spraypaintkt"
