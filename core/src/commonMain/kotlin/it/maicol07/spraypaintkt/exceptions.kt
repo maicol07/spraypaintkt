@@ -4,6 +4,8 @@ import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
+private val json = Json { ignoreUnknownKeys = true }
+
 /**
  * An exception thrown by the JSON:API server.
  *
@@ -18,7 +20,7 @@ class JsonApiException(
     /**
      * The errors returned by the server.
      */
-    val errors = Json.decodeFromString<JsonApiErrorResponse>(body).errors
+    val errors = json.decodeFromString<JsonApiErrorResponse>(body).errors
 }
 
 /**
