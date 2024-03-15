@@ -25,13 +25,13 @@ abstract class Resource(
     var isPersisted = false
 
     /** The attributes of the resource. */
-    val attributes = object : MutableMap<String, Any?> by mutableMapOf() {}
+    val attributes = mutableMapOf<String, Any?>()
     /** The relationships of the resource. */
-    val relationships: MutableMap<String, Any> = mutableMapOf()
+    val relationships = mutableMapOf<String, Any>()
     /** The meta of the resource. */
-    val meta: MutableMap<String, Any?> = mutableMapOf()
+    val meta = mutableMapOf<String, Any?>()
     /** The links of the resource. */
-    val links: MutableMap<String, Any?> = mutableMapOf()
+    val links = mutableMapOf<String, Any?>()
 
     /** The type of the resource. */
     val type: String
