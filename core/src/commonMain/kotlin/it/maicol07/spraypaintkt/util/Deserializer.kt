@@ -29,7 +29,13 @@ class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
         model.id = datum.id
         model.isPersisted = true
 
-        model.attributes.putAll(datum.attributes)
+        model.attributes.putAll(datum.attributes.map { (key, value) ->
+            when (value) {
+                is List<*> -> key to value.toMutableList()
+                is Map<*, *> -> key to value.toMutableMap()
+                else -> key to value
+            }
+        })
 
         for ((key, relationship) in datum.relationships) {
             val relationData = relationship?.data
