@@ -74,7 +74,7 @@ data class JsonApiError(
      */
     @Serializable
     data class Links(
-        val about: String,
+        val about: String? = null,
         val type: String? = null
     )
 }
