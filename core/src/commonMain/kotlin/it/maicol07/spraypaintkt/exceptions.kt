@@ -1,8 +1,8 @@
 package it.maicol07.spraypaintkt
 
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 
 private val json = Json { ignoreUnknownKeys = true }
 
@@ -52,7 +52,7 @@ data class JsonApiError(
     val title: String? = null,
     val detail: String? = null,
     val source: Source? = null,
-    val meta: Map<String, @Contextual Any?> = emptyMap()
+    val meta: JsonObject? = null
 ) {
     /**
      * An object containing references to the source of the error.
