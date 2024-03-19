@@ -38,7 +38,7 @@ class JsonApiSingleResponse(
             if (data is List<*>) {
                 data = data.firstOrNull()
             }
-            return JsonApiResource(data as Map<String, Any>)
+            return JsonApiResource(data as Map<String, Any>? ?: emptyMap())
         }
 }
 
