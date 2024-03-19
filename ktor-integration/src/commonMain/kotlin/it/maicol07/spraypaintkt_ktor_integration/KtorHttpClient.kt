@@ -2,6 +2,8 @@ package it.maicol07.spraypaintkt_ktor_integration
 
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.accept
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -14,14 +16,23 @@ import io.ktor.http.contentType
 import it.maicol07.spraypaintkt.http.HttpClientResponse
 
 class KtorHttpClient(
-    httpClientOptions: HttpClientConfig<*>.() -> Unit = {},
+    httpClientOptions: HttpClientConfig<*>.() -> Unit = {
+        defaultRequest {
+            accept(VndApiJson)
+            contentType(VndApiJson)
+        }
+    },
     val httpClient: HttpClient = HttpClient(httpClientOptions)
 ): it.maicol07.spraypaintkt.http.HttpClient {
+    companion object {
+        val VndApiJson = ContentType("application", "vnd.api+json")
+    }
     override suspend fun get(url: String, parameters: Map<String, String>): HttpClientResponse {
         val response = httpClient.get(url) {
             for ((key, value) in parameters) {
                 parameter(key, value)
             }
+            accept(VndApiJson)
         }
 
         val responseBody = response.bodyAsText()
@@ -40,7 +51,8 @@ class KtorHttpClient(
             for ((key, value) in parameters) {
                 parameter(key, value)
             }
-            contentType(ContentType.Application.Json)
+            accept(VndApiJson)
+            contentType(VndApiJson)
             setBody(body)
         }
 
@@ -60,7 +72,8 @@ class KtorHttpClient(
             for ((key, value) in parameters) {
                 parameter(key, value)
             }
-            contentType(ContentType.Application.Json)
+            accept(VndApiJson)
+            contentType(VndApiJson)
             setBody(body)
         }
 
@@ -80,7 +93,8 @@ class KtorHttpClient(
             for ((key, value) in parameters) {
                 parameter(key, value)
             }
-            contentType(ContentType.Application.Json)
+            accept(VndApiJson)
+            contentType(VndApiJson)
             setBody(body)
         }
 
@@ -96,6 +110,7 @@ class KtorHttpClient(
             parameters.forEach { (key, value) ->
                 parameter(key, value)
             }
+            accept(VndApiJson)
         }
 
         val responseBody = response.bodyAsText()
