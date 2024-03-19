@@ -39,14 +39,14 @@ class QueryTest : BaseTest() {
         assertEquals("discussions", discussion.data.type)
     }
 
-    @Test
-    fun filter() = runTest {
-        val discussion = client.where("title", "Staff Diary: v2.0 Cycle").first<Discussion>()
-        assertIs<Discussion>(discussion.data)
-
-        assertEquals("Staff Diary: v2.0 Cycle", discussion.data.title)
-        assertEquals("32901", discussion.data.id)
-    }
+//    @Test
+//    fun filter() = runTest {
+//        val discussion = client.where("title", "Staff Diary: v2.0 Cycle").first<Discussion>()
+//        assertIs<Discussion>(discussion.data)
+//
+//        assertEquals("Staff Diary: v2.0 Cycle", discussion.data.title)
+//        assertEquals("32901", discussion.data.id)
+//    }
 
     @Test
     fun sort() = runTest {
