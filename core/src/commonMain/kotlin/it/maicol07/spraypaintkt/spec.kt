@@ -89,8 +89,13 @@ class JsonApiRelationship(
     response: Map<String, Any>,
 ): Map<String, Any?> by response {
     /** The data of the relationship. */
-    val data: List<JsonApiRelationshipData> by lazy {
+    val data: List<JsonApiRelationshipData>? by lazy {
         val list = mutableListOf<JsonApiRelationshipData>()
+
+        if (response["data"] == null) {
+            return@lazy null
+        }
+
         if (response["data"] is Map<*, *>) {
             list.add(JsonApiRelationshipData(response["data"] as Map<String, Any>))
         }
