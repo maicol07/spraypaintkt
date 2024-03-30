@@ -1,5 +1,5 @@
 [versions]
-agp = "8.4.0-beta01"
+agp = "8.4.0-beta02"
 koin = "3.5.3"
 kotlin = "1.9.23"
 kotlinxCoroutinesTest = "1.8.0"
