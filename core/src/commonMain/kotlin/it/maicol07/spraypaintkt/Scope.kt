@@ -242,7 +242,7 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
         )
 
         if (includes.isNotEmpty()) {
-            params.put("include", includes.joinToString(","))
+            params["include"] = includes.joinToString(",")
         }
 
         pagination.number?.let { params.put("page[number]", it.toString()) }
