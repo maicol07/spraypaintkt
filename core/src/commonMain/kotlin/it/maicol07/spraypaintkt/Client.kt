@@ -1,7 +1,10 @@
 package it.maicol07.spraypaintkt
 
+import it.maicol07.spraypaintkt.extensions.JsonObjectMap
+import it.maicol07.spraypaintkt.extensions.extractedContent
 import it.maicol07.spraypaintkt.util.Deserializer
 import it.maicol07.spraypaintkt.http.HttpClient
+import kotlinx.serialization.json.Json
 
 /**
  * A client for a JSON:API server.
@@ -155,6 +158,14 @@ class Client(
         if (response.statusCode !in 200..204) {
             throw JsonApiException(response.statusCode, response.body)
         }
+        
+        if (!resource.isPersisted && response.statusCode == 201) {
+            val jsonApiResponse = Json.parseToJsonElement(response.body).extractedContent as JsonObjectMap?
+                ?: throw JsonApiException(response.statusCode, response.body)
+            resource.fromJsonApi(JsonApiResource(jsonApiResponse), emptyList(), deserializer)
+            
+        }
+        
         return true
     }
 
