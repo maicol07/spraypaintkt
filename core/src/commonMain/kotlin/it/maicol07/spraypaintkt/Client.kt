@@ -152,7 +152,7 @@ class Client(
             val url = urlForResource(resource)
             httpClient.post(url, resource.toJsonApiString())
         }
-        if (response.statusCode !in listOf(200, 204)) {
+        if (response.statusCode !in 200..204) {
             throw JsonApiException(response.statusCode, response.body)
         }
         return true
