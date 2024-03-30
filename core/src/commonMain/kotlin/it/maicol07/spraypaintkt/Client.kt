@@ -162,7 +162,7 @@ class Client(
         if (!resource.isPersisted && response.statusCode == 201) {
             val jsonApiResponse = Json.parseToJsonElement(response.body).extractedContent as JsonObjectMap?
                 ?: throw JsonApiException(response.statusCode, response.body)
-            resource.fromJsonApi(JsonApiResource(jsonApiResponse), emptyList(), deserializer)
+            resource.fromJsonApi(JsonApiResource(jsonApiResponse["data"] as JsonObjectMap), emptyList(), deserializer)
             
         }
         
