@@ -5,11 +5,10 @@ import it.maicol07.spraypaintkt.Client
 import it.maicol07.spraypaintkt.ModelGenerator
 import it.maicol07.spraypaintkt.PaginationStrategy
 import it.maicol07.spraypaintkt.Resource
-import it.maicol07.spraypaintkt.tests.models.Discussion
-import it.maicol07.spraypaintkt.tests.models.Group
-import it.maicol07.spraypaintkt.tests.models.Post
-import it.maicol07.spraypaintkt.tests.models.Tag
-import it.maicol07.spraypaintkt.tests.models.User
+import it.maicol07.spraypaintkt.tests.models.Review
+import it.maicol07.spraypaintkt.tests.models.Book
+import it.maicol07.spraypaintkt.tests.models.Publisher
+import it.maicol07.spraypaintkt.tests.models.Person
 import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient
 import kotlin.reflect.KClass
 import kotlin.test.BeforeTest
@@ -17,15 +16,14 @@ import kotlin.test.BeforeTest
 abstract class BaseTest {
     @Suppress("UNCHECKED_CAST")
     val client = Client(
-        baseUrl = "https://discuss.flarum.org/api",
+        baseUrl = "https://thomaxxl.pythonanywhere.com/api",
         modelGenerator = object : ModelGenerator {
             override fun <R : Resource> generate(clazz: KClass<R>): R {
                 return when (clazz) {
-                    Discussion::class -> Discussion()
-                    Tag::class -> Tag()
-                    User::class -> User()
-                    Post::class -> Post()
-                    Group::class -> Group()
+                    Review::class -> Review()
+                    Person::class -> Person()
+                    Publisher::class -> Publisher()
+                    Book::class -> Book()
                     else -> throw IllegalArgumentException("Unknown resource class: $clazz")
                 } as R
             }
@@ -38,10 +36,9 @@ abstract class BaseTest {
 
     @BeforeTest
     fun setup() {
-        client.registerResource<Discussion>()
-        client.registerResource<Tag>()
-        client.registerResource<User>()
-        client.registerResource<Post>()
-        client.registerResource<Group>()
+        client.registerResource<Review>()
+        client.registerResource<Person>()
+        client.registerResource<Publisher>()
+        client.registerResource<Book>()
     }
 }
