@@ -37,6 +37,8 @@ class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
             }
         })
 
+        cache[Pair(datum.type, datum.id)] = model
+
         for ((key, relationship) in datum.relationships) {
             val relationData = relationship?.data
             if (relationData != null) {
@@ -47,7 +49,7 @@ class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
                     val id = relationshipData.id
                     val related = included.find { it.type == type && it.id == id }
                     if (related != null) {
-                        val cached = cache.getOrPut(Pair(type, id)) {
+                        val cached = cache.getOrElse(Pair(type, id)) {
                             val resource = typeRegistry[type]?.invoke() ?: throw RuntimeException("No type registered for $type")
                             deserialize(resource, related, included)
                             resource
