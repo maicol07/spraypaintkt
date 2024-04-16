@@ -28,10 +28,6 @@ class Client(
      */
     val typeRegistry = mutableMapOf<String, () -> Resource>()
     /**
-     * The deserializer for the client.
-     */
-    val deserializer = Deserializer(typeRegistry)
-    /**
      * The base URL of the server.
      */
     private val fullBasePath = "$baseUrl$apiNamespace"
@@ -147,6 +143,7 @@ class Client(
      *
      * @param resource The resource to save.
      */
+    @Suppress("UNCHECKED_CAST")
     suspend fun <R: Resource> save(resource: R): Boolean {
         val response = if (resource.isPersisted) {
             val url = urlForResource(resource, resource.id)
@@ -162,8 +159,7 @@ class Client(
         if (!resource.isPersisted && response.statusCode == 201) {
             val jsonApiResponse = Json.parseToJsonElement(response.body).extractedContent as JsonObjectMap?
                 ?: throw JsonApiException(response.statusCode, response.body)
-            resource.fromJsonApi(JsonApiResource(jsonApiResponse["data"] as JsonObjectMap), emptyList(), deserializer)
-            
+            resource.fromJsonApi(JsonApiResource(jsonApiResponse["data"] as JsonObjectMap), emptyList(), Deserializer(typeRegistry))
         }
         
         return true

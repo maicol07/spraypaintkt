@@ -2,6 +2,7 @@ package it.maicol07.spraypaintkt
 
 import it.maicol07.spraypaintkt.extensions.JsonObjectMap
 import it.maicol07.spraypaintkt.extensions.extractedContent
+import it.maicol07.spraypaintkt.util.Deserializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
@@ -273,7 +274,7 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
     inline fun <reified R: Resource> buildRecordResult(jsonResult: JsonApiSingleResponse): RecordProxy<R> {
         val model = client.modelGenerator.generate(R::class)
         val data = jsonResult.data ?: throw RuntimeException("Record not found")
-        model.fromJsonApi(data, jsonResult.included, client.deserializer)
+        model.fromJsonApi(data, jsonResult.included, Deserializer(client.typeRegistry))
         return RecordProxy(model, jsonResult.meta, jsonResult)
     }
 
@@ -288,7 +289,7 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
 
         for (record in jsonResult.data) {
             val model = client.modelGenerator.generate(R::class)
-            model.fromJsonApi(record, jsonResult.included, client.deserializer)
+            model.fromJsonApi(record, jsonResult.included, Deserializer(client.typeRegistry))
             modelList.add(model)
         }
 
