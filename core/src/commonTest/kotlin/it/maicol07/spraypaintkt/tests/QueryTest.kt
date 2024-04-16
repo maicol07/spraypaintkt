@@ -22,14 +22,16 @@ class QueryTest : BaseTest() {
 
     @Test
     fun find() = runTest {
-        val review = client.find<Review>("5056b91f-47f7-4e2e-a5bd-352c4445aff8_1")
+        val response = client.first<Review>()
+        val firstReview = response.data
+        val review = client.find<Review>(firstReview.id!!)
 
         assertIs<Review>(review.data)
 
         val resource = review.data
         assertEquals("Review", resource.type)
-        assertEquals("5056b91f-47f7-4e2e-a5bd-352c4445aff8_1", resource.id)
-        assertEquals("review 0", review.data.review)
+        assertEquals(firstReview.id, resource.id)
+        assertEquals(firstReview.review, resource.review)
     }
 
     @Test
@@ -44,45 +46,45 @@ class QueryTest : BaseTest() {
         assertIs<Review>(discussion.data)
 
         assertEquals("review 10", discussion.data.review)
-        assertEquals("0ff9069c-d15f-4049-a228-68a3652fbbcf_21", discussion.data.id)
     }
 
     @Test
     fun sort() = runTest {
         // We can't sort by created because they're all the same
-        val reviews = client.order("book_id", SortDirection.DESC).first<Review>()
+        val reviews = client.order("review", SortDirection.DESC).first<Review>()
         assertIs<Review>(reviews.data)
 
         val review = reviews.data
         assertEquals("Review", review.type)
-        assertEquals("fda4c1a4-6f91-4136-9398-2b4f8f4f74d9_155", review.id)
+        assertEquals("review 99", review.review)
     }
 
     @Test
     fun include() = runTest {
-        val reviews = client.includes("book", "reader", "book.publisher", "book.publisher.books").find<Review>("0ff9069c-d15f-4049-a228-68a3652fbbcf_21")
+        val firstReview = client.first<Review>().data
+        val reviews = client.includes("book", "reader", "book.publisher", "book.publisher.books").find<Review>(firstReview.id!!)
         assertIs<Review>(reviews.data)
 
         val review = reviews.data
         assertEquals("Review", review.type)
-        assertEquals("0ff9069c-d15f-4049-a228-68a3652fbbcf_21", review.id)
+        assertEquals(firstReview.id, review.id)
 
         val reader = review.reader
         assertEquals("Person", reader.type)
-        assertEquals("21", reader.id)
+        assertEquals(review.reader_id.toString(), reader.id)
 
         val book = review.book
-        assertEquals("0ff9069c-d15f-4049-a228-68a3652fbbcf", book.id)
+        assertEquals(review.book_id, book.id)
 
         val publisher = book.publisher
         assertEquals("Publisher", publisher.type)
-        assertEquals("11", publisher.id)
+        assertEquals(book.publisher_id.toString(), publisher.id)
 
         val publishedBooks = review.book.publisher.books
         assertIs<List<Book>>(publishedBooks)
         assertEquals(1, publishedBooks.size)
         assertEquals("Book", publishedBooks[0].type)
-        assertEquals("0ff9069c-d15f-4049-a228-68a3652fbbcf", publishedBooks[0].id)
+        assertEquals(book.id, publishedBooks[0].id)
     }
 
     @Test

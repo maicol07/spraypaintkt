@@ -4,6 +4,7 @@ import it.maicol07.spraypaintkt.Resource
 
 class Book: Resource("Book", "Books") {
     var title: String by attributes
+    val publisher_id: Int by attributes
 
     var author: Person by relationships
     var reader: Person by relationships
