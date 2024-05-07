@@ -1,6 +1,7 @@
 package it.maicol07.spraypaintkt
 
 import it.maicol07.spraypaintkt.extensions.toJsonElement
+import it.maicol07.spraypaintkt.extensions.trackChanges
 import it.maicol07.spraypaintkt.util.Deserializer
 import it.maicol07.spraypaintkt.util.pluralize
 import kotlinx.serialization.encodeToString
@@ -25,9 +26,9 @@ abstract class Resource(
     var isPersisted = false
 
     /** The attributes of the resource. */
-    val attributes = mutableMapOf<String, Any?>()
+    val attributes = mutableMapOf<String, Any?>().trackChanges()
     /** The relationships of the resource. */
-    val relationships = mutableMapOf<String, Any>()
+    val relationships = mutableMapOf<String, Any>().trackChanges()
     /** The meta of the resource. */
     val meta = mutableMapOf<String, Any?>()
     /** The links of the resource. */
@@ -107,15 +108,15 @@ abstract class Resource(
     /**
      * Serialize the resource to a JSON:API object.
      */
-    fun toJsonApi(): Map<String, Any?> {
+    fun toJsonApi(onlyDirty: Boolean = false): Map<String, Any?> {
         val data = mutableMapOf<String, Any?>("type" to type,)
         if (id != null) {
             data["id"] = id
         }
-        data["attributes"] = attributes
+        data["attributes"] = if (onlyDirty) attributes.getChanges() else attributes
 
         val relationships = mutableMapOf<String, Any>()
-        for ((key, value) in this.relationships) {
+        for ((key, value) in (if (onlyDirty) this.relationships.getChanges() else this.relationships)) {
             @Suppress("UNCHECKED_CAST")
             val rel = relationships.getOrPut(key) { mutableMapOf<String, Map<String, Any>>() } as MutableMap<String, Any>
             if (value is Resource) {
@@ -144,8 +145,8 @@ abstract class Resource(
     /**
      * Serialize the resource to a JSON:API string.
      */
-    fun toJsonApiString(from: Json = Json.Default, builder: JsonBuilder.() -> Unit = {}): String {
+    fun toJsonApiString(from: Json = Json.Default, builder: JsonBuilder.() -> Unit = {}, onlyDirty: Boolean = false): String {
         @Suppress("JSON_FORMAT_REDUNDANT")
-        return Json(from, builder).encodeToString(toJsonApi().toJsonElement())
+        return Json(from, builder).encodeToString(toJsonApi(onlyDirty).toJsonElement())
     }
 }

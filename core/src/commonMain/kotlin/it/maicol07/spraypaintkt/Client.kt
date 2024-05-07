@@ -147,7 +147,7 @@ class Client(
     suspend fun <R: Resource> save(resource: R): Boolean {
         val response = if (resource.isPersisted) {
             val url = urlForResource(resource, resource.id)
-            httpClient.patch(url, resource.toJsonApiString())
+            httpClient.patch(url, resource.toJsonApiString(onlyDirty = true))
         } else {
             val url = urlForResource(resource)
             httpClient.post(url, resource.toJsonApiString())

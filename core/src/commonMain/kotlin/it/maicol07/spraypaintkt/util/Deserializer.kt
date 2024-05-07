@@ -23,8 +23,6 @@ class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
      * @return The deserialized [Resource] object.
      */
     fun <R: Resource> deserialize(model: R, datum: JsonApiResource, included: List<JsonApiResource>): R {
-        // already
-
 //        Logger.d("Deserializer") { "Deserializing ${model.type} with id ${datum.id}" }
         model.id = datum.id
         model.isPersisted = true
@@ -36,6 +34,7 @@ class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
                 else -> key to value
             }
         })
+        model.attributes.clearChanges()
 
         cache[Pair(datum.type, datum.id)] = model
 
@@ -65,6 +64,7 @@ class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
                 }
             }
         }
+        model.relationships.clearChanges()
 
         model.links.putAll(datum.links)
         model.meta.putAll(datum.meta)
