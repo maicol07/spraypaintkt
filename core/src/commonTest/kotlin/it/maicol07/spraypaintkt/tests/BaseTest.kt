@@ -1,5 +1,8 @@
 package it.maicol07.spraypaintkt.tests
 
+import io.ktor.client.plugins.logging.DEFAULT
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import it.maicol07.spraypaintkt.Client
 import it.maicol07.spraypaintkt.ModelGenerator
@@ -30,7 +33,10 @@ abstract class BaseTest {
         },
         paginationStrategy = PaginationStrategy.OFFSET_BASED,
         httpClient = KtorHttpClient({
-            install(Logging)
+            install(Logging) {
+                logger = Logger.DEFAULT
+                level = LogLevel.ALL
+            }
         }),
     )
 
