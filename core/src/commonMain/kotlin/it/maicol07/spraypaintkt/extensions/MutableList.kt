@@ -45,6 +45,27 @@ class DirtyList<T>(private val delegate: MutableList<T>, private val callback: (
         return result
     }
 
+    override fun iterator(): MutableIterator<T> {
+        return object : MutableIterator<T> {
+            private val iterator = delegate.iterator()
+            private var last: T? = null
+
+            override fun hasNext(): Boolean {
+                return iterator.hasNext()
+            }
+
+            override fun next(): T {
+                last = iterator.next()
+                return last!!
+            }
+
+            override fun remove() {
+                iterator.remove()
+                trackChange(last!!)
+            }
+        }
+    }
+
     override fun removeAt(index: Int): T {
         val element = delegate.removeAt(index)
         trackChange(element)

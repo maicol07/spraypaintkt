@@ -17,6 +17,14 @@ class DirtyMap<K, V>(
         from.forEach { (key, value) -> trackChange(key, null, value) }
     }
 
+    override fun remove(key: K): V? {
+        val oldValue = delegate.remove(key)
+        if (oldValue != null) {
+            trackRemovalChange(key, oldValue)
+        }
+        return oldValue
+    }
+
     @Suppress("UNUSED_PARAMETER")
     fun trackChange(key: K, oldValue: V?, newValue: V) {
         if (changes == null) {
@@ -24,6 +32,10 @@ class DirtyMap<K, V>(
         }
         changes!![key] = newValue
         callback(key, newValue, this)
+    }
+
+    fun trackRemovalChange(key: K, oldValue: V) {
+        callback(key, oldValue, this)
     }
 
     fun getChanges(): Map<K, V> {
