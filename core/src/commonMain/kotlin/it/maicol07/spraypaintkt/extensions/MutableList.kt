@@ -1,5 +1,8 @@
 package it.maicol07.spraypaintkt.extensions
 
+/**
+ * A mutable list that tracks changes.
+ */
 class DirtyList<T>(private val delegate: MutableList<T>, private val callback: (item: T, list: DirtyList<T>) -> Unit = {_, _ ->}) : MutableList<T> by delegate {
     private var changes: MutableList<T>? = null
 
@@ -78,6 +81,9 @@ class DirtyList<T>(private val delegate: MutableList<T>, private val callback: (
         return result
     }
 
+    /**
+     * Track a change in the list.
+     */
     private fun trackChange(element: T) {
         if (changes == null) {
             changes = mutableListOf()
@@ -86,15 +92,24 @@ class DirtyList<T>(private val delegate: MutableList<T>, private val callback: (
         callback(element, this)
     }
 
+    /**
+     * Get the changes that have been tracked.
+     */
     fun getChanges(): List<T> {
         return changes ?: emptyList()
     }
 
+    /**
+     * Clear the changes that have been tracked.
+     */
     fun clearChanges() {
         changes = null
     }
 }
 
+/**
+ * Track changes in a mutable list.
+ */
 fun <T> MutableList<T>.trackChanges(callback: (item: T, list: DirtyList<T>) -> Unit = {_, _ ->}): DirtyList<T> {
     return DirtyList(this, callback)
 }
