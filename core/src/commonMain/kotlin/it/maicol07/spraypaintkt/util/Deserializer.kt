@@ -2,6 +2,7 @@ package it.maicol07.spraypaintkt.util
 
 import it.maicol07.spraypaintkt.JsonApiResource
 import it.maicol07.spraypaintkt.Resource
+import it.maicol07.spraypaintkt.extensions.trackChanges
 
 /**
  * Deserializer for JSON:API resources.
@@ -29,8 +30,12 @@ class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
 
         model.attributes.putAll(datum.attributes.map { (key, value) ->
             when (value) {
-                is List<*> -> key to value.toMutableList()
-                is Map<*, *> -> key to value.toMutableMap()
+                is List<*> -> key to value.toMutableList().trackChanges { _, list ->
+                    model.attributes.trackChange(key, null, list)
+                }
+                is Map<*, *> -> key to value.toMutableMap().trackChanges { _, _, map ->
+                    model.attributes.trackChange(key, null, map)
+                }
                 else -> key to value
             }
         })
@@ -60,7 +65,9 @@ class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
                 if (relatedResources.size == 1 && relationship.isSingle) {
                     model.relationships[key] = relatedResources.first()
                 } else {
-                    model.relationships[key] = relatedResources
+                    model.relationships[key] = relatedResources.trackChanges { _, list ->
+                        model.relationships.trackChange(key, null, list)
+                    }
                 }
             }
         }

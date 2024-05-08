@@ -1,6 +1,9 @@
 package it.maicol07.spraypaintkt.extensions
 
-class DirtyMap<K, V>(private val delegate: MutableMap<K, V>) : MutableMap<K, V> by delegate {
+class DirtyMap<K, V>(
+    private val delegate: MutableMap<K, V>,
+    private val callback: (key: K, value: V, map: DirtyMap<K, V>) -> Unit = { _, _, _ -> }
+) : MutableMap<K, V> by delegate {
     private var changes: MutableMap<K,V>? = null
 
     override fun put(key: K, value: V): V? {
@@ -15,11 +18,12 @@ class DirtyMap<K, V>(private val delegate: MutableMap<K, V>) : MutableMap<K, V> 
     }
 
     @Suppress("UNUSED_PARAMETER")
-    private fun trackChange(key: K, oldValue: V?, newValue: V) {
+    fun trackChange(key: K, oldValue: V?, newValue: V) {
         if (changes == null) {
             changes = mutableMapOf()
         }
         changes!![key] = newValue
+        callback(key, newValue, this)
     }
 
     fun getChanges(): Map<K, V> {
@@ -31,6 +35,6 @@ class DirtyMap<K, V>(private val delegate: MutableMap<K, V>) : MutableMap<K, V> 
     }
 }
 
-fun <K, V> MutableMap<K, V>.trackChanges(): DirtyMap<K, V> {
-    return DirtyMap(this)
+fun <K, V> MutableMap<K, V>.trackChanges(callback: (key: K, value: V, map: DirtyMap<K, V>) -> Unit = { _, _, _ ->}): DirtyMap<K, V> {
+    return DirtyMap(this, callback)
 }
