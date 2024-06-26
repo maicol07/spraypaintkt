@@ -19,7 +19,7 @@ import kotlin.test.BeforeTest
 abstract class BaseTest {
     @Suppress("UNCHECKED_CAST")
     val client = Client(
-        baseUrl = "https://thomaxxl.pythonanywhere.com/api",
+        baseUrl = "https://safrs.onrender.com/api",
         modelGenerator = object : ModelGenerator {
             override fun <R : Resource> generate(clazz: KClass<R>): R {
                 return when (clazz) {
