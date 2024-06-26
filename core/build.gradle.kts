@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.mavenPublish)
     alias(libs.plugins.dokka)
+    id("com.google.devtools.ksp") version "2.0.0-1.0.22"
 }
 
 group = "it.maicol07.spraypaintkt"
@@ -34,11 +35,15 @@ kotlin {
     }
 
     sourceSets {
+        commonMain {
+            kotlin.srcDir("build/generated/ksp/commonMain/kotlin")
+        }
         commonMain.dependencies {
             implementation(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {
             api(projects.ktorIntegration)
+            implementation(projects.annotation)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.cio)
             implementation(libs.logback.classic)
@@ -47,6 +52,10 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
         }
     }
+}
+
+dependencies {
+    add("kspCommonMainMetadata", projects.processor)
 }
 
 android {
@@ -113,5 +122,11 @@ tasks{
         from(dokkaHtml)
         dependsOn(dokkaHtml)
         archiveClassifier.set("javadoc")
+    }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
+    if (name != "kspCommonMainKotlinMetadata") {
+        dependsOn("kspCommonMainKotlinMetadata")
     }
 }
