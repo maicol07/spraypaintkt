@@ -5,7 +5,7 @@ version = rootProject.extra.get("libVersion")!!
 
 plugins {
     kotlin("jvm")
-    kotlin("kapt")
+    alias(libs.plugins.ksp)
     alias(libs.plugins.mavenPublish)
 }
 
@@ -16,21 +16,14 @@ java {
 }
 
 dependencies {
+    api(projects.annotation)
     // KSP
-    implementation("com.google.devtools.ksp:symbol-processing-api:2.0.0-1.0.22")
-    // KotlinPoet
-    implementation("com.squareup:kotlinpoet:1.17.0")
-    implementation("com.squareup:kotlinpoet-ksp:1.17.0")
+    implementation(libs.symbol.processing.api)
+    implementation(libs.kotlinpoet.ksp)
 
-    compileOnly("com.google.auto.service:auto-service:1.1.1")
-    kapt("dev.zacsweers.autoservice:auto-service-ksp:1.10")
-    implementation(projects.annotation)
-
-    /* TEST  */
-//    testImplementation(libs.junit)
-//    testImplementation(libs.kctfork.core)
-//    testImplementation(libs.kctfork.ksp)
-//    testImplementation(libs.mockito.kotlin)
+    ksp(libs.auto.service.ksp)
+    // NOTE: It's important that you _don't_ use compileOnly here, as it will fail to resolve at compile-time otherwise
+    implementation(libs.auto.service.annotations)
 }
 
 mavenPublishing {

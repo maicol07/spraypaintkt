@@ -5,6 +5,7 @@ plugins {
     kotlin("plugin.serialization") version libs.versions.kotlin apply false
     alias(libs.plugins.mavenPublish) apply false
     alias(libs.plugins.dokka) apply false
+    alias(libs.plugins.ksp) apply false
 }
 
 rootProject.extra.set("libVersion", System.getenv("LIB_VERSION") ?: "0.1.0")
