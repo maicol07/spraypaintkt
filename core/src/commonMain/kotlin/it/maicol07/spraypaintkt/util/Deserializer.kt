@@ -2,6 +2,7 @@ package it.maicol07.spraypaintkt.util
 
 import it.maicol07.spraypaintkt.JsonApiResource
 import it.maicol07.spraypaintkt.Resource
+import it.maicol07.spraypaintkt.ResourceRegistry
 import it.maicol07.spraypaintkt.extensions.trackChanges
 
 /**
@@ -9,7 +10,7 @@ import it.maicol07.spraypaintkt.extensions.trackChanges
  *
  * @param typeRegistry The type registry to use.
  */
-class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
+class Deserializer {
     /**
      * Cache for deserialized resources.
      */
@@ -54,7 +55,7 @@ class Deserializer(private val typeRegistry: Map<String, () -> Resource>) {
                     val related = included.find { it.type == type && it.id == id }
                     if (related != null) {
                         val cached = cache.getOrElse(Pair(type, id)) {
-                            val resource = typeRegistry[type]?.invoke() ?: throw RuntimeException("No type registered for $type")
+                            val resource = ResourceRegistry.createInstance(type)
                             deserialize(resource, related, included)
                             resource
                         }
