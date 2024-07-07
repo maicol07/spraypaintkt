@@ -13,7 +13,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import it.maicol07.spraypaintkt.http.HttpClientResponse
+import it.maicol07.spraypaintkt.interfaces.HttpClientResponse
 
 class KtorHttpClient(
     httpClientOptions: HttpClientConfig<*>.() -> Unit = {
@@ -23,7 +23,7 @@ class KtorHttpClient(
         }
     },
     val httpClient: HttpClient = HttpClient(httpClientOptions)
-): it.maicol07.spraypaintkt.http.HttpClient {
+): it.maicol07.spraypaintkt.interfaces.HttpClient {
     companion object {
         val VndApiJson = ContentType("application", "vnd.api+json")
     }

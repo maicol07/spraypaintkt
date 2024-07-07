@@ -1,4 +1,4 @@
-package it.maicol07.spraypaintkt.http
+package it.maicol07.spraypaintkt.interfaces
 
 /**
  * Interface for a generic HTTP client.
