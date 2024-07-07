@@ -1,30 +1,28 @@
-package it.maicol07.spraypaintkt.tests
+package it.maicol07.spraypaintkt_test
 
 import it.maicol07.spraypaintkt.SortDirection
-import it.maicol07.spraypaintkt.tests.models.Book
-import it.maicol07.spraypaintkt.tests.models.Review
+import it.maicol07.spraypaintkt_test.models.Book
+import it.maicol07.spraypaintkt_test.models.Review
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFails
 import kotlin.test.assertIs
-import kotlin.test.assertNotNull
 
 class QueryTest : BaseTest() {
     @Test
     fun all() = runTest {
-        val reviews = client.all<Review>()
+        val reviews = Review.all()
         assertIs<List<Review>>(reviews.data)
 
-        val discussion = reviews.data.first()
-        assertEquals("Review", discussion.type)
+        val review = reviews.data.first()
+        assertEquals("Review", review.type)
     }
 
     @Test
     fun find() = runTest {
-        val response = client.first<Review>()
+        val response = Review.first()
         val firstReview = response.data
-        val review = client.find<Review>(firstReview.id!!)
+        val review = Review.find(firstReview.id!!)
 
         assertIs<Review>(review.data)
 
@@ -36,13 +34,13 @@ class QueryTest : BaseTest() {
 
     @Test
     fun first() = runTest {
-        val review = client.first<Review>()
+        val review = Review.first()
         assertEquals("Review", review.data.type)
     }
 
     @Test
     fun filter() = runTest {
-        val discussion = client.where("review", "review 10").first<Review>()
+        val discussion = Review.where("review", "review 10").first()
         assertIs<Review>(discussion.data)
 
         assertEquals("review 10", discussion.data.review)
@@ -51,7 +49,7 @@ class QueryTest : BaseTest() {
     @Test
     fun sort() = runTest {
         // We can't sort by created because they're all the same
-        val reviews = client.order("review", SortDirection.DESC).first<Review>()
+        val reviews = Review.order("review", SortDirection.DESC).first()
         assertIs<Review>(reviews.data)
 
         val review = reviews.data
@@ -61,8 +59,8 @@ class QueryTest : BaseTest() {
 
     @Test
     fun include() = runTest {
-        val firstReview = client.first<Review>().data
-        val reviews = client.includes("book", "reader", "book.publisher", "book.publisher.books").find<Review>(firstReview.id!!)
+        val firstReview = Review.first().data
+        val reviews = Review.includes("book", "reader", "book.publisher", "book.publisher.books").find(firstReview.id!!)
         assertIs<Review>(reviews.data)
 
         val review = reviews.data
@@ -89,7 +87,7 @@ class QueryTest : BaseTest() {
 
     @Test
     fun page() = runTest {
-        val reviews = client.offset(1).limit(3).all<Review>()
+        val reviews = Review.offset(1).limit(3).all()
         assertIs<List<Review>>(reviews.data)
         assertEquals(3, reviews.data.size)
 
