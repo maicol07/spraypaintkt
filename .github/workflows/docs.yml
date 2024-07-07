@@ -23,11 +23,19 @@ jobs:
           java-version: 17
           distribution: 'temurin'
 
+      - uses: benjlevesque/short-sha@v3.0
+        id: short-sha
+        with:
+          length: 7
 
       - run: chmod +x ./gradlew
 
       - name: Build documentation
         run: ./gradlew dokkaHtml
+        env:
+          # In case of a release, use the release tag as the version, else use the short SHA concatenated with -SNAPSHOT
+          LIB_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || steps.short-sha.outputs.sha }}${{ github.event_name == 'release' && '' || '-SNAPSHOT' }}
+
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
