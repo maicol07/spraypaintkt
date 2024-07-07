@@ -53,7 +53,7 @@ data class JsonApiErrorResponse(
 data class JsonApiError(
     val id: String? = null,
     val links: Links? = null,
-    val status: Int? = null,
+    val status: String? = null,
     val code: String? = null,
     val title: String? = null,
     val detail: String? = null,
