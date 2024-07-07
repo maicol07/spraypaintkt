@@ -20,13 +20,7 @@ class JsonApiException(
     /**
      * The errors returned by the server.
      */
-    val errors by lazy {
-        try {
-            json.decodeFromString<JsonApiErrorResponse>(body).errors
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
+    val errors by lazy { json.decodeFromString<JsonApiErrorResponse>(body).errors }
 }
 
 /**
