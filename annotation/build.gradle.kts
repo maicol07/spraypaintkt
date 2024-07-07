@@ -27,6 +27,12 @@ kotlin {
             baseName = "annotation"
         }
     }
+
+    sourceSets {
+        commonMain.dependencies {
+            api(projects.core)
+        }
+    }
 }
 
 group = "it.maicol07.spraypaintkt"

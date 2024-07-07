@@ -6,10 +6,9 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.google.auto.service.AutoService
 
 @AutoService(SymbolProcessorProvider::class)
-class ModelAnnotationProvider : SymbolProcessorProvider {
-
+class ResourceSchemaAnnotationProvider : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
-        return DtoToModelProcessor(
+        return ResourceSchemaProcessor(
             logger = environment.logger,
             codeGenerator = environment.codeGenerator
         )
