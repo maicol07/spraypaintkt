@@ -5,73 +5,17 @@ import it.maicol07.spraypaintkt.extensions.extractedContent
 import it.maicol07.spraypaintkt.util.Deserializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-
-/**
- * The direction of the sorting.
- */
-enum class SortDirection {
-    ASC,
-    DESC
-}
-
-/**
- * The strategy to use for pagination.
- */
-enum class PaginationStrategy {
-    PAGE_BASED,
-    OFFSET_BASED
-}
-
-/**
- * The pagination options.
- *
- * @param number The page number.
- * @param size The number of items per page.
- * @param limit The number of items to return.
- * @param offset The number of items to skip.
- */
-data class ScopePagination(
-    var number: Number? = null,
-    var size: Number? = null,
-    var limit: Number? = null,
-    var offset: Number? = null
-)
-
-/**
- * A wrapper for a collection of resources.
- *
- * @param R The type of the resource.
- * @param data The data of the collection.
- * @param meta The meta of the collection.
- * @param raw The raw JSON:API response as a map.
- */
-data class CollectionProxy<R: Resource>(
-    val data: List<R>,
-    val meta: Map<String, Any>,
-    val raw: JsonApiCollectionResponse
-)
-
-/**
- * A wrapper for a single resource.
- *
- * @param R The type of the resource.
- * @param data The data of the resource.
- * @param meta The meta of the resource.
- * @param raw The raw JSON:API response as a map.
- */
-data class RecordProxy<R: Resource>(
-    val data: R,
-    val meta: Map<String, Any>,
-    val raw: JsonApiSingleResponse
-)
+import kotlin.reflect.KClass
 
 /**
  * A scope for querying the server.
  *
- * @param client The client to use.
+ * @param resourceClass The resource to use the scope on.
  * @param options The options for the scope.
  */
-class Scope(val client: Client, options: Scope.() -> Unit = {}) {
+class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>.() -> Unit = {}) {
+    annotation class ScopeMethod
+
     /** The pagination options. */
     val pagination = ScopePagination()
     /** The filter options. */
@@ -85,18 +29,18 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
     /** The relationships to include. */
     val includes = mutableListOf<String>()
 
+    private val resourceCompanion = ResourceRegistry.get(resourceClass)
+
     init {
         options()
     }
 
     /**
      * Get all the resources.
-     *
-     * @param R The type of the resource.
      */
-    suspend inline fun <reified R: Resource> all(): CollectionProxy<R> {
-        val model = client.modelGenerator.generate(R::class)
-        val json = this.sendRequest(client.urlForResource(model))
+    @ScopeMethod
+    suspend fun all(): CollectionProxy<R> {
+        val json = this.sendRequest(resourceCompanion.urlForResource())
         return buildResultList(JsonApiCollectionResponse(json))
     }
 
@@ -104,22 +48,19 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
      * Find a resource by its ID
      *
      * @param id The ID of the record
-     * @param R The type of the resource
      */
-    suspend inline fun <reified R: Resource> find(id: String): RecordProxy<R> {
-        val model = client.modelGenerator.generate(R::class)
-        val json = this.sendRequest(client.urlForResource(model, id))
+    @ScopeMethod
+    suspend fun find(id: String): RecordProxy<R> {
+        val json = this.sendRequest(resourceCompanion.urlForResource(id = id))
         return buildRecordResult(JsonApiSingleResponse(json))
     }
 
     /**
      * Get the first resource
-     *
-     * @param R The type of the resource
      */
-    suspend inline fun <reified R: Resource> first(): RecordProxy<R> {
-        val model = client.modelGenerator.generate(R::class)
-        val json = this.sendRequest(client.urlForResource(model))
+    @ScopeMethod
+    suspend fun first(): RecordProxy<R> {
+        val json = this.sendRequest(resourceCompanion.urlForResource())
         return buildRecordResult(JsonApiSingleResponse(json))
     }
 
@@ -128,8 +69,9 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
      *
      * @param pageNumber The page number to return
      */
-    fun page(pageNumber: Number): Scope {
-        if (client.paginationStrategy == PaginationStrategy.OFFSET_BASED) {
+    @ScopeMethod
+    fun page(pageNumber: Number): Scope<R> {
+        if (resourceCompanion.config.paginationStrategy == PaginationStrategy.OFFSET_BASED) {
             throw RuntimeException("Page-based pagination is not supported with the current pagination strategy")
         }
         pagination.number = pageNumber
@@ -141,8 +83,9 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
      *
      * @param pageSize The number of items per page
      */
-    fun per(pageSize: Number): Scope {
-        if (client.paginationStrategy == PaginationStrategy.OFFSET_BASED) {
+    @ScopeMethod
+    fun per(pageSize: Number): Scope<R> {
+        if (resourceCompanion.config.paginationStrategy == PaginationStrategy.OFFSET_BASED) {
             throw RuntimeException("Page-based pagination is not supported with the current pagination strategy")
         }
         pagination.size = pageSize
@@ -154,8 +97,9 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
      *
      * @param limit The number of items to return
      */
-    fun limit(limit: Number): Scope {
-        if (client.paginationStrategy == PaginationStrategy.PAGE_BASED) {
+    @ScopeMethod
+    fun limit(limit: Number): Scope<R> {
+        if (resourceCompanion.config.paginationStrategy == PaginationStrategy.PAGE_BASED) {
             throw RuntimeException("Offset-based pagination is not supported with the current pagination strategy")
         }
         pagination.limit = limit
@@ -167,8 +111,9 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
      *
      * @param offset The number of items to skip
      */
-    fun offset(offset: Number): Scope {
-        if (client.paginationStrategy == PaginationStrategy.PAGE_BASED) {
+    @ScopeMethod
+    fun offset(offset: Number): Scope<R> {
+        if (resourceCompanion.config.paginationStrategy == PaginationStrategy.PAGE_BASED) {
             throw RuntimeException("Offset-based pagination is not supported with the current pagination strategy")
         }
         pagination.offset = offset
@@ -181,7 +126,8 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
      * @param attribute The attribute to filter by
      * @param value The value to filter by
      */
-    fun where(attribute: String, value: Any): Scope {
+    @ScopeMethod
+    fun where(attribute: String, value: Any): Scope<R> {
         filter[attribute] = value.toString()
         return this
     }
@@ -192,7 +138,8 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
      * @param key The key of the parameter
      * @param value The value of the parameter
      */
-    fun extraParam(key: String, value: String): Scope {
+    @ScopeMethod
+    fun extraParam(key: String, value: String): Scope<R> {
         params[key] = value
         return this
     }
@@ -203,7 +150,8 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
      * @param attribute The attribute to order by
      * @param sortDirection The direction to order in
      */
-    fun order(attribute: String, sortDirection: SortDirection = SortDirection.ASC): Scope {
+    @ScopeMethod
+    fun order(attribute: String, sortDirection: SortDirection = SortDirection.ASC): Scope<R> {
         sort[attribute] = sortDirection
         return this
     }
@@ -213,7 +161,8 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
      *
      * @param relationships The relationships to include
      */
-    fun includes(vararg relationships: String): Scope {
+    @ScopeMethod
+    fun includes(vararg relationships: String): Scope<R> {
         includes.addAll(relationships)
         return this
     }
@@ -224,7 +173,8 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
      * @param type The type to select fields for
      * @param fields The fields to select
      */
-    fun select(type: String, vararg fields: String): Scope {
+    @ScopeMethod
+    fun select(type: String, vararg fields: String): Scope<R> {
         this.fields[type] = fields.toList()
         return this
     }
@@ -234,7 +184,7 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
      *
      * @param url The URL to send the request to
      */
-    suspend fun sendRequest(url: String): JsonObjectMap {
+    private suspend fun sendRequest(url: String): JsonObjectMap {
         val params = mutableMapOf(
             *filter.map { (key, value) -> "filter[$key]" to value }.toTypedArray(),
             *sort.map { (key, value) -> "sort" to (if (value == SortDirection.ASC) key else "-$key") }.toTypedArray(),
@@ -251,7 +201,7 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
         pagination.limit?.let { params.put("page[limit]", it.toString()) }
         pagination.offset?.let { params.put("page[offset]", it.toString()) }
 
-        val response = client.httpClient.get(url, params)
+        val response = resourceCompanion.config.httpClient.get(url, params)
         if (response.statusCode >= 400) {
             throw JsonApiException(response.statusCode, response.body)
         }
@@ -269,12 +219,11 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
      * Build a record result from a JSON:API response
      *
      * @param jsonResult The JSON:API response
-     * @param R The type of the resource
      */
-    inline fun <reified R: Resource> buildRecordResult(jsonResult: JsonApiSingleResponse): RecordProxy<R> {
-        val model = client.modelGenerator.generate(R::class)
+    private fun buildRecordResult(jsonResult: JsonApiSingleResponse): RecordProxy<R> {
+        val model = ResourceRegistry.createInstance(resourceClass)
         val data = jsonResult.data ?: throw RuntimeException("Record not found")
-        model.fromJsonApi(data, jsonResult.included, Deserializer(client.typeRegistry))
+        model.fromJsonApi(data, jsonResult.included)
         return RecordProxy(model, jsonResult.meta, jsonResult)
     }
 
@@ -282,14 +231,13 @@ class Scope(val client: Client, options: Scope.() -> Unit = {}) {
      * Build a result list from a JSON:API response
      *
      * @param jsonResult The JSON:API response
-     * @param R The type of the resource
      */
-    inline fun <reified R: Resource> buildResultList(jsonResult: JsonApiCollectionResponse): CollectionProxy<R> {
+    private fun buildResultList(jsonResult: JsonApiCollectionResponse): CollectionProxy<R> {
         val modelList = mutableListOf<R>()
 
         for (record in jsonResult.data) {
-            val model = client.modelGenerator.generate(R::class)
-            model.fromJsonApi(record, jsonResult.included, Deserializer(client.typeRegistry))
+            val model = ResourceRegistry.createInstance(resourceClass)
+            model.fromJsonApi(record, jsonResult.included)
             modelList.add(model)
         }
 
