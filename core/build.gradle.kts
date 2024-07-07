@@ -9,7 +9,6 @@ plugins {
     kotlin("plugin.serialization")
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.mavenPublish)
-    alias(libs.plugins.dokka)
     alias(libs.plugins.ksp)
 }
 
@@ -119,14 +118,6 @@ publishing {
             // environment variables
             credentials(PasswordCredentials::class)
         }
-    }
-}
-
-tasks {
-    register<Jar>("dokkaJar") {
-        from(dokkaHtml)
-        dependsOn(dokkaHtml)
-        archiveClassifier.set("javadoc")
     }
 }
 

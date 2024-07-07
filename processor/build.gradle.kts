@@ -7,7 +7,6 @@ plugins {
     kotlin("jvm")
     alias(libs.plugins.ksp)
     alias(libs.plugins.mavenPublish)
-    alias(libs.plugins.dokka)
 }
 
 java {
@@ -59,13 +58,5 @@ mavenPublishing {
             connection = "scm:git:git://github.com/maicol07/spraypaintkt.git"
             developerConnection = "scm:git:ssh://git@github.com/maicol07/spraypaintkt.git"
         }
-    }
-}
-
-tasks {
-    register<Jar>("dokkaJar") {
-        from(dokkaHtml)
-        dependsOn(dokkaHtml)
-        archiveClassifier.set("javadoc")
     }
 }

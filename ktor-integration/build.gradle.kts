@@ -7,7 +7,6 @@ plugins {
   kotlin("multiplatform")
   alias(libs.plugins.androidLibrary)
   alias(libs.plugins.mavenPublish)
-  alias(libs.plugins.dokka)
 }
 
 group = "it.maicol07.spraypaintkt"
@@ -95,13 +94,5 @@ publishing {
       // environment variables
       credentials(PasswordCredentials::class)
     }
-  }
-}
-
-tasks {
-  register<Jar>("dokkaJar") {
-    from(dokkaHtml)
-    dependsOn(dokkaHtml)
-    archiveClassifier.set("javadoc")
   }
 }
