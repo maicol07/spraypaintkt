@@ -7,9 +7,9 @@ import kotlinx.serialization.json.Json
 
 
 /**
- * Save a resource to the server.
+ * Save the resource to the server.
  *
- * @param resource The resource to save.
+ * @return `true` if the resource was saved successfully. `false` otherwise.
  */
 @Suppress("UNCHECKED_CAST")
 suspend fun <R: Resource> R.save(): Boolean {
@@ -35,7 +35,7 @@ suspend fun <R: Resource> R.save(): Boolean {
 /**
  * Destroy a resource from the server.
  *
- * @param resource The resource to destroy.
+ * @return `true` if the resource was destroyed successfully. `false` otherwise.
  */
 suspend fun <R: Resource> R.destroy(): Boolean {
     val url = companion.urlForResource(this)

@@ -7,8 +7,6 @@ import it.maicol07.spraypaintkt.extensions.trackChanges
 
 /**
  * Deserializer for JSON:API resources.
- *
- * @param typeRegistry The type registry to use.
  */
 class Deserializer {
     /**

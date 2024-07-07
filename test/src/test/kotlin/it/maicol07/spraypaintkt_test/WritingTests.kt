@@ -10,10 +10,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * NOTE: Since we don't have a fake API to test against, we won't use save methods in the tests.
- * Instead, we'll compare the payload sent to the server with the expected one.
- */
 class WritingTests : BaseTest() {
     @Test
     fun writing() = runTest {

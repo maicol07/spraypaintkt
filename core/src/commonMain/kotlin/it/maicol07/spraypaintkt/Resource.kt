@@ -7,24 +7,38 @@ import it.maicol07.spraypaintkt.util.Deserializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
-import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
-import kotlin.reflect.KProperty
 
 /**
  * A JSON:API resource.
- *
- * @param resourceType The type of the resource.
- * @param endpoint The endpoint of the resource (if different from the type).
  */
 abstract class Resource {
+    /**
+     * A companion object for the resource.
+     *
+     * @param R The type of the resource.
+     */
     interface Companion<R : Resource> {
+        /** The type of the resource. */
         val resourceType: String
+
+        /** The endpoint of the resource. */
         val endpoint: String
+
+        /** The configuration of the resource. */
         val config: JsonApiConfig
+
+        /** The factory for the resource. */
         val factory: () -> R
+
+        /** The schema of the resource. */
         val schema: KClass<*>
 
+        /**
+         * Create a new instance of the resource.
+         *
+         * @return The new instance.
+         */
         fun urlForResource(resource: Resource? = null, id: String? = null): String {
             return listOf(config.baseUrl, config.apiNamespace, endpoint, id ?: resource?.id ?: "")
                 .filter { it.isNotEmpty() }
@@ -32,6 +46,7 @@ abstract class Resource {
         }
     }
 
+    /** The companion object of the resource. */
     abstract val companion: Companion<out Resource>
 
     /** The ID of the resource. */
@@ -110,5 +125,8 @@ abstract class Resource {
         return Json(from, builder).encodeToString(toJsonApi(onlyDirty).toJsonElement())
     }
 
+    /**
+     * Convert the resource to a URL.
+     */
     fun toUrl(): String = companion.urlForResource(this)
 }
