@@ -122,7 +122,7 @@ publishing {
     }
 }
 
-tasks{
+tasks {
     register<Jar>("dokkaJar") {
         from(dokkaHtml)
         dependsOn(dokkaHtml)

@@ -7,6 +7,7 @@ plugins {
     kotlin("multiplatform")
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.mavenPublish)
+    alias(libs.plugins.dokka)
 }
 
 kotlin {
@@ -100,5 +101,13 @@ mavenPublishing {
             connection = "scm:git:git://github.com/maicol07/spraypaintkt.git"
             developerConnection = "scm:git:ssh://git@github.com/maicol07/spraypaintkt.git"
         }
+    }
+}
+
+tasks {
+    register<Jar>("dokkaJar") {
+        from(dokkaHtml)
+        dependsOn(dokkaHtml)
+        archiveClassifier.set("javadoc")
     }
 }
