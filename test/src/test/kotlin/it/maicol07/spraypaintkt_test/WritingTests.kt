@@ -39,7 +39,7 @@ class WritingTests : BaseTest() {
         // Refresh the person object
         person = Person.find(person.id!!).data
 
-        assertTrue { person.destroy(person) }
+        assertTrue { person.destroy() }
 
         try {
             Person.find(person.id!!)

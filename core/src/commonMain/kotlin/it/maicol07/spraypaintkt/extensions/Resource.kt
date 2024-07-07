@@ -37,8 +37,8 @@ suspend fun <R: Resource> R.save(): Boolean {
  *
  * @param resource The resource to destroy.
  */
-suspend fun <R: Resource> R.destroy(resource: R): Boolean {
-    val url = companion.urlForResource(resource, resource.id)
+suspend fun <R: Resource> R.destroy(): Boolean {
+    val url = companion.urlForResource(this)
     val response = companion.config.httpClient.delete(url)
     if (response.statusCode !in listOf(200, 204)) {
         throw JsonApiException(response.statusCode, response.body)
