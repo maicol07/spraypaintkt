@@ -13,6 +13,8 @@ plugins {
 
 rootProject.extra.set("libVersion", System.getenv("LIB_VERSION") ?: "0.1.0")
 
+version = rootProject.extra.get("libVersion")!!
+
 subprojects {
     apply(plugin = "org.jetbrains.dokka")
 
