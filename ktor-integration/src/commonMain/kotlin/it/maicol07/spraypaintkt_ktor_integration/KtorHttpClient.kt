@@ -15,6 +15,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import it.maicol07.spraypaintkt.interfaces.HttpClientResponse
 
+@Suppress("MissingTestClass")
 class KtorHttpClient(
     httpClientOptions: HttpClientConfig<*>.() -> Unit = {
         defaultRequest {

@@ -2,9 +2,7 @@ package it.maicol07.spraypaintkt_test
 
 import it.maicol07.spraypaintkt.JsonApiError
 import it.maicol07.spraypaintkt.JsonApiException
-import it.maicol07.spraypaintkt_test.models.Book
 import it.maicol07.spraypaintkt_test.models.Publisher
-//import it.maicol07.spraypaintkt_test.models.Publisher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals

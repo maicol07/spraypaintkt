@@ -1,3 +1,5 @@
+@file:Suppress("MissingTestClass")
+
 package it.maicol07.spraypaintkt.extensions
 
 /**

@@ -80,7 +80,7 @@ class ResourceSchemaProcessor(
 
                 val resourceSimpleName = resourceSchema.simpleName.asString().removeSuffix("Schema")
                 val resourceClassName = ClassName.bestGuess(resourceSchema.qualifiedName!!.asString().removeSuffix("Schema"))
-                val resourceClass = generateResourceClass(resolver, resourceSchema, resourceSimpleName, resourceClassName, getDefaultConfig(resolver))
+                val resourceClass = generateResourceClass(resolver, resourceSchema, resourceSimpleName, resourceClassName, defaultConfig)
 
                 val resourceFile =
                     FileSpec.builder(resourceSchema.packageName.asString(), resourceClass.name!!)
@@ -113,7 +113,6 @@ class ResourceSchemaProcessor(
         defaultConfig: KSClassDeclaration?
     ): TypeSpec {
         val resourceSchemaAnnotation = resourceSchema.getAnnotationsByType(ResourceSchema::class).first()
-
 
         logger.info("Generating resource class: $resourceSimpleName")
 
@@ -217,14 +216,15 @@ class ResourceSchemaProcessor(
                 .build()
         }.asIterable()
 
-    fun generateToOneRelationships(resolver: Resolver, resourceSchema: KSClassDeclaration): Iterable<PropertySpec> = resourceSchema.annotations
+    private fun generateToOneRelationships(resolver: Resolver, resourceSchema: KSClassDeclaration): Iterable<PropertySpec> = resourceSchema.annotations
         // TODO: Change when https://github.com/google/ksp/issues/1129 is fixed
         .filter { it.annotationType.resolve().declaration.qualifiedName?.asString() == ToOneRelationship::class.qualifiedName }
         .map { annotation ->
             val arguments = annotation.arguments.associate { it.name?.asString() to it.value }
             val propertyName = (arguments["propertyName"] as String).ifEmpty { arguments["name"] as String }
             val resourceSchemaType = arguments["resourceType"] as KSType
-            val resourceSchemaName = resourceSchemaType.declaration.qualifiedName!!
+            val resourceSchemaName = resourceSchemaType.declaration.qualifiedName ?:
+            throw IllegalStateException("Resource type of to-one relationship $propertyName of schema ${resourceSchema.qualifiedName!!.asString()} not found")
             val canBeEmpty = arguments["canBeEmpty"] as Boolean
 
             logger.info("Generating one-to-one relationship $propertyName of type $resourceSchemaName")
@@ -261,7 +261,8 @@ class ResourceSchemaProcessor(
             val arguments = annotation.arguments.associate { it.name?.asString() to it.value }
             val propertyName = (arguments["propertyName"] as String).ifEmpty { arguments["name"] as String }
             val resourceSchemaType = arguments["resourceType"] as KSType
-            val resourceSchemaName = resourceSchemaType.declaration.qualifiedName!!
+            val resourceSchemaName = resourceSchemaType.declaration.qualifiedName ?:
+            throw IllegalStateException("Resource type of to-many relationship $propertyName of schema ${resourceSchema.qualifiedName!!.asString()} not found")
             val canBeNull = arguments["canBeNull"] as Boolean
 
             logger.info("Generating one-to-many relationship $propertyName of type ${resourceSchemaName.asString()}")
