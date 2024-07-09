@@ -2,6 +2,7 @@
 agp = "8.5.0"
 autoServiceAnnotations = "1.1.1"
 autoServiceKsp = "1.2.0"
+kasechange = "1.4.1"
 koin = "3.5.6"
 kotlin = "2.0.0"
 kotlinpoetKsp = "1.18.0"
@@ -16,6 +17,7 @@ ksp = "2.0.0-1.0.22"
 [libraries]
 auto-service-annotations = { module = "com.google.auto.service:auto-service-annotations", version.ref = "autoServiceAnnotations" }
 auto-service-ksp = { module = "dev.zacsweers.autoservice:auto-service-ksp", version.ref = "autoServiceKsp" }
+kasechange = { module = "net.pearx.kasechange:kasechange", version.ref = "kasechange" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "kotlinpoetKsp" }

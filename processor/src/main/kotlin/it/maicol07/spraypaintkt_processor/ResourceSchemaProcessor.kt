@@ -39,6 +39,7 @@ import it.maicol07.spraypaintkt_annotation.DefaultInstance
 import it.maicol07.spraypaintkt_annotation.ResourceSchema
 import it.maicol07.spraypaintkt_annotation.ToManyRelationship
 import it.maicol07.spraypaintkt_annotation.ToOneRelationship
+import net.pearx.kasechange.toSnakeCase
 import java.util.Locale
 import kotlin.reflect.KClass
 import kotlin.reflect.full.declaredMemberFunctions
@@ -189,8 +190,9 @@ class ResourceSchemaProcessor(
     fun generateAttributes(resourceSchema: KSClassDeclaration): Iterable<PropertySpec> = resourceSchema.getAllProperties()
         .filter { it.isAnnotationPresent(Attr::class) }
         .map {
-            // TODO: Annotation name prop and automatic case switch in resourceschema
+            val annotation = it.getAnnotationsByType(Attr::class).first()
             val propertyName = it.simpleName.asString()
+            val attributeName = annotation.name.ifEmpty { if (annotation.autoTransform) propertyName.toSnakeCase() else propertyName }
             logger.info("Generating attribute $propertyName of type ${it.type}")
 
             val delegate = if (it.type.toTypeName().isNullable) "nullableAttribute" else "attribute"
@@ -198,7 +200,7 @@ class ResourceSchemaProcessor(
             val delegateFormat = if (!it.isAbstract()) "%M(%S, %L)" else "%M(%S)"
             val delegateParams = listOf(
                 MemberName("it.maicol07.spraypaintkt.extensions", delegate),
-                propertyName,
+                attributeName,
                 if (!it.isAbstract()) "super.$propertyName" else null
             )
 
