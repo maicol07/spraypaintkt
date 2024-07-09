@@ -12,6 +12,7 @@ import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
@@ -52,6 +53,7 @@ class ResourceSchemaProcessor(
     private val codeGenerator: CodeGenerator,
 ) : SymbolProcessor {
     private val filesToWrite = mutableListOf<FileSpec>()
+    private val fileDependencies = mutableSetOf<KSFile>()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         // Create function to initialize ResourceFactory
@@ -71,6 +73,10 @@ class ResourceSchemaProcessor(
                 if (!resourceSchema.simpleName.asString().endsWith("Schema")) {
                     throw IllegalStateException("Class ${resourceSchema.qualifiedName?.asString()} does not end with 'Schema'")
                 }
+
+                val defaultConfig = getDefaultConfig(resolver)
+                defaultConfig?.let { fileDependencies.add(it.containingFile!!) }
+                fileDependencies.add(resourceSchema.containingFile!!)
 
                 val resourceSimpleName = resourceSchema.simpleName.asString().removeSuffix("Schema")
                 val resourceClassName = ClassName.bestGuess(resourceSchema.qualifiedName!!.asString().removeSuffix("Schema"))
@@ -352,7 +358,7 @@ class ResourceSchemaProcessor(
         super.finish()
         for (file in filesToWrite) {
             logger.info("Writing file ${file.name}")
-            file.writeTo(codeGenerator, Dependencies.ALL_FILES)
+            file.writeTo(codeGenerator, Dependencies(true, *fileDependencies.toTypedArray()))
         }
     }
 }
