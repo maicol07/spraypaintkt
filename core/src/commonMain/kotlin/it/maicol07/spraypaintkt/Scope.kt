@@ -41,7 +41,7 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
     @ScopeMethod
     suspend fun all(): CollectionProxy<R> {
         val json = this.sendRequest(resourceCompanion.urlForResource())
-        return buildResultList(JsonApiCollectionResponse(json))
+        return buildResultList(JsonApiCollectionResponse.fromJsonApiString(json))
     }
 
     /**
@@ -52,7 +52,7 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
     @ScopeMethod
     suspend fun find(id: String): RecordProxy<R> {
         val json = this.sendRequest(resourceCompanion.urlForResource(id = id))
-        return buildRecordResult(JsonApiSingleResponse(json))
+        return buildRecordResult(JsonApiSingleResponse.fromJsonApiString(json))
     }
 
     /**
@@ -61,7 +61,7 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
     @ScopeMethod
     suspend fun first(): RecordProxy<R> {
         val json = this.sendRequest(resourceCompanion.urlForResource())
-        return buildRecordResult(JsonApiSingleResponse(json))
+        return buildRecordResult(JsonApiSingleResponse.fromJsonApiString(json))
     }
 
     /**
@@ -184,7 +184,7 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
      *
      * @param url The URL to send the request to
      */
-    private suspend fun sendRequest(url: String): JsonObjectMap {
+    private suspend fun sendRequest(url: String): String {
         val params = mutableMapOf(
             *filter.map { (key, value) -> "filter[$key]" to value }.toTypedArray(),
             *sort.map { (key, value) -> "sort" to (if (value == SortDirection.ASC) key else "-$key") }.toTypedArray(),
@@ -207,9 +207,7 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
         }
 
         try {
-            @Suppress("UNCHECKED_CAST")
-            return Json.parseToJsonElement(response.body).extractedContent as JsonObjectMap?
-                ?: throw RuntimeException("Empty response from JSONAPI")
+            return response.body
         } catch (e: SerializationException) {
             throw RuntimeException("Failed to decode JSONAPI Response")
         }

@@ -4,6 +4,7 @@ import it.maicol07.spraypaintkt.extensions.toJsonElement
 import it.maicol07.spraypaintkt.extensions.trackChanges
 import it.maicol07.spraypaintkt.interfaces.JsonApiConfig
 import it.maicol07.spraypaintkt.util.Deserializer
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
@@ -12,13 +13,14 @@ import kotlin.reflect.KClass
 /**
  * A JSON:API resource.
  */
+@Serializable(with = ResourceSerializer::class)
 abstract class Resource {
     /**
      * A companion object for the resource.
      *
      * @param R The type of the resource.
      */
-    interface Companion<R : Resource> {
+    interface CompanionObj<R : Resource> {
         /** The type of the resource. */
         val resourceType: String
 
@@ -44,10 +46,29 @@ abstract class Resource {
                 .filter { it.isNotEmpty() }
                 .joinToString("/") { it.trim('/', '\\') }
         }
+
+        /**
+         * Deserialize the resource from a JSON:API response.
+         *
+         * @param jsonApiData The JSON:API data.
+         * @param included The included resources.
+         */
+        fun fromJsonApi(jsonApiData: JsonApiResource, included: List<JsonApiResource>) {
+            Deserializer().deserialize(jsonApiData, included)
+        }
+
+        /**
+         * Deserialize the resource from a JSON:API response.
+         *
+         * @param jsonApiResponse The JSON:API response.
+         */
+        fun fromJsonApi(jsonApiResponse: JsonApiSingleResponse) {
+            Deserializer().deserialize(jsonApiResponse)
+        }
     }
 
     /** The companion object of the resource. */
-    abstract val companion: Companion<out Resource>
+    abstract val companion: CompanionObj<out Resource>
 
     /** The ID of the resource. */
     var id: String? = null
@@ -71,16 +92,6 @@ abstract class Resource {
     val type: String by lazy { companion.resourceType }
 
     /**
-     * Deserialize the resource from a JSON:API response.
-     *
-     * @param jsonApiData The JSON:API data.
-     * @param included The included resources.
-     */
-    fun fromJsonApi(jsonApiData: JsonApiResource, included: List<JsonApiResource>) {
-        Deserializer().deserialize(this, jsonApiData, included)
-    }
-
-    /**
      * Serialize the resource to a JSON:API object.
      */
     fun toJsonApi(onlyDirty: Boolean = false): Map<String, Any?> {
@@ -90,31 +101,30 @@ abstract class Resource {
         }
         data["attributes"] = if (onlyDirty) attributes.getChanges() else attributes
 
+        val included = mutableSetOf<Map<String, Any?>>()
         val relationships = mutableMapOf<String, Any>()
         for ((key, value) in (if (onlyDirty) this.relationships.getChanges() else this.relationships)) {
             @Suppress("UNCHECKED_CAST")
             val rel = relationships.getOrPut(key) { mutableMapOf<String, Map<String, Any>>() } as MutableMap<String, Any>
-            if (value is Resource) {
-                rel["data"] = mapOf(
-                    "type" to value.type,
-                    "id" to value.id!!,
-                )
-            } else if (value is List<*>) {
-                rel["data"] = value.map {
-                    if (it is Resource) {
-                        mapOf(
-                            "type" to it.type,
-                            "id" to it.id,
-                        )
-                    } else {
-                        null
-                    }
-                }.filterNotNull()
-            }
+            val valueList = if (value is List<*>) value else listOf(value)
+            rel["data"] = valueList.map {
+                if (it is Resource) mapOf(
+                    "type" to it.type,
+                    "id" to it.id,
+                ) else null
+            }.filterNotNull().let { if (it.count() == 1) it.first() else it }
+            included.addAll(valueList.mapNotNull {
+                if (it !is Resource) return@mapNotNull null
+                val resJsonApi = it.toJsonApi()
+                @Suppress("UNCHECKED_CAST")
+                included.addAll(resJsonApi["included"] as Collection<Map<String, Any?>>)
+                @Suppress("UNCHECKED_CAST")
+                resJsonApi["data"] as Map<String, Any?>
+            })
         }
         data["relationships"] = relationships
 
-        return mapOf("data" to data)
+        return mapOf("data" to data, "included" to included)
     }
 
     /**
@@ -123,6 +133,26 @@ abstract class Resource {
     fun toJsonApiString(from: Json = Json.Default, builder: JsonBuilder.() -> Unit = {}, onlyDirty: Boolean = false): String {
         @Suppress("JSON_FORMAT_REDUNDANT")
         return Json(from, builder).encodeToString(toJsonApi(onlyDirty).toJsonElement())
+    }
+
+
+    /**
+     * Deserialize the resource from a JSON:API response.
+     *
+     * @param jsonApiData The JSON:API data.
+     * @param included The included resources.
+     */
+    fun fromJsonApi(jsonApiData: JsonApiResource, included: List<JsonApiResource> = listOf()) {
+        Deserializer().deserializeToResource(this, jsonApiData, included)
+    }
+    /**
+     * Deserialize the resource from a JSON:API response.
+     *
+     * @param jsonApiData The JSON:API data.
+     * @param included The included resources.
+     */
+    fun fromJsonApiResponse(jsonApiResponse: JsonApiSingleResponse) {
+        Deserializer().deserializeToResource(this, jsonApiResponse)
     }
 
     /**

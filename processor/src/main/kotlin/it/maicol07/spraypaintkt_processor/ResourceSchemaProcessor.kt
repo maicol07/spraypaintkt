@@ -14,6 +14,7 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSType
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
@@ -26,12 +27,14 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import it.maicol07.spraypaintkt.Resource
 import it.maicol07.spraypaintkt.ResourceRegistry
+import it.maicol07.spraypaintkt.ResourceSerializer
 import it.maicol07.spraypaintkt.Scope
 import it.maicol07.spraypaintkt.interfaces.JsonApiConfig
 import it.maicol07.spraypaintkt.util.pluralize
@@ -40,6 +43,7 @@ import it.maicol07.spraypaintkt_annotation.DefaultInstance
 import it.maicol07.spraypaintkt_annotation.ResourceSchema
 import it.maicol07.spraypaintkt_annotation.ToManyRelationship
 import it.maicol07.spraypaintkt_annotation.ToOneRelationship
+import kotlinx.serialization.Serializable
 import net.pearx.kasechange.toSnakeCase
 import java.util.Locale
 import kotlin.reflect.KClass
@@ -121,11 +125,12 @@ class ResourceSchemaProcessor(
             .addSuperinterface(resourceSchema.toClassName())
             .addType(generateResourceCompanionObject(resourceSchema, resourceClassName, resourceSchemaAnnotation, defaultConfig))
             .addProperty(
-                PropertySpec.builder("companion", Resource.Companion::class.asTypeName().parameterizedBy(resourceClassName))
+                PropertySpec.builder("companion", Resource.CompanionObj::class.asTypeName().parameterizedBy(resourceClassName))
                     .addModifiers(KModifier.OVERRIDE)
                     .initializer("Companion")
                     .build()
             )
+            .addAnnotation(AnnotationSpec.builder(Serializable::class.asClassName()).addMember("%T::class", ResourceSerializer::class).build())
             .addProperties(generateAttributes(resourceSchema))
             .addProperties(generateToOneRelationships(resolver, resourceSchema))
             .addProperties(generateToManyRelationships(resolver, resourceSchema))
@@ -139,7 +144,7 @@ class ResourceSchemaProcessor(
         defaultConfig: KSClassDeclaration?
     ) = TypeSpec.companionObjectBuilder()
         .addSuperinterface(
-            Resource.Companion::class.asTypeName()
+            Resource.CompanionObj::class.asTypeName()
                 .parameterizedBy(resourceClassName)
         )
         .addProperty(

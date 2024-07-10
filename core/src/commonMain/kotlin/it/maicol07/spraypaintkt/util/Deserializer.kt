@@ -1,6 +1,7 @@
 package it.maicol07.spraypaintkt.util
 
 import it.maicol07.spraypaintkt.JsonApiResource
+import it.maicol07.spraypaintkt.JsonApiSingleResponse
 import it.maicol07.spraypaintkt.Resource
 import it.maicol07.spraypaintkt.ResourceRegistry
 import it.maicol07.spraypaintkt.extensions.trackChanges
@@ -15,32 +16,86 @@ class Deserializer {
     private val cache = mutableMapOf<Pair<String, String>, Resource>()
 
     /**
-     * Deserializes a JSON:API resource into a [Resource] object.
+     * Deserializes a JSON:API response into a [Resource] object.
      *
-     * @param model The [Resource] object to deserialize into.
-     * @param datum The JSON:API resource to deserialize.
+     * @param jsonApiData The JSON:API data to deserialize.
      * @param included The included resources.
+     *
      * @return The deserialized [Resource] object.
      */
-    fun <R: Resource> deserialize(model: R, datum: JsonApiResource, included: List<JsonApiResource>): R {
-//        Logger.d("Deserializer") { "Deserializing ${model.type} with id ${datum.id}" }
-        model.id = datum.id
-        model.isPersisted = true
+    fun deserialize(jsonApiData: JsonApiResource, included: List<JsonApiResource>): Resource {
+        val type = jsonApiData.type
+        val id = jsonApiData.id
+        val model = cache.getOrElse(Pair(type, id)) {
+            val resource = ResourceRegistry.createInstance(type)
+            deserializeToResource(resource, jsonApiData, included)
+            resource
+        }
+        return model
+    }
 
-        model.attributes.putAll(datum.attributes.map { (key, value) ->
+    /**
+     * Deserializes a JSON:API response into a [Resource] object.
+     *
+     * @param jsonApiResponse The JSON:API response to deserialize.
+     *
+     * @return The deserialized [Resource] object.
+     */
+    fun deserialize(jsonApiResponse: JsonApiSingleResponse): Resource {
+        return deserialize(jsonApiResponse.data!!, jsonApiResponse.included)
+    }
+
+    /**
+     * Deserializes a JSON:API resource into a [Resource] object.
+     *
+     * @param jsonApiResource The JSON:API resource to deserialize.
+     *
+     * @return The deserialized [Resource] object.
+     */
+    fun deserialize(jsonApiResource: JsonApiResource): Resource {
+        return deserialize(jsonApiResource, listOf())
+    }
+
+    /**
+     * Deserializes a JSON:API resource into a [Resource] object.
+     *
+     * @param resource The JSON:API resource to deserialize into.
+     * @param jsonApiResponse The JSON:API response to deserialize.
+     *
+     * @return The deserialized [Resource] object.
+     */
+    fun <R: Resource> deserializeToResource(resource: R, jsonApiResponse: JsonApiSingleResponse): R {
+        return deserializeToResource(resource, jsonApiResponse.data!!, jsonApiResponse.included)
+    }
+
+    /**
+     * Deserializes a JSON:API resource into a [Resource] object.
+     *
+     * @param resource The [Resource] object to deserialize into.
+     * @param datum The JSON:API resource to deserialize.
+     * @param included The included resources.
+     *
+     * @return The updated [Resource] object.
+     */
+    fun <R: Resource> deserializeToResource(resource: R, datum: JsonApiResource, included: List<JsonApiResource>): R {
+//        Logger.d("Deserializer") { "Deserializing ${model.type} with id ${datum.id}" }
+        resource.id = datum.id
+        resource.isPersisted = true
+
+        resource.attributes.putAll(datum.attributes.map { (key, value) ->
             when (value) {
                 is List<*> -> key to value.toMutableList().trackChanges { _, list ->
-                    model.attributes.trackChange(key, null, list)
+                    resource.attributes.trackChange(key, null, list)
                 }
                 is Map<*, *> -> key to value.toMutableMap().trackChanges { _, _, map ->
-                    model.attributes.trackChange(key, null, map)
+                    resource.attributes.trackChange(key, null, map)
                 }
                 else -> key to value
             }
         })
-        model.attributes.clearChanges()
+        resource.attributes.clearChanges()
 
-        cache[Pair(datum.type, datum.id)] = model
+        cache[Pair(datum.type, datum.id)] = resource
 
         for ((key, relationship) in datum.relationships) {
             val relationData = relationship?.data
@@ -54,7 +109,7 @@ class Deserializer {
                     if (related != null) {
                         val cached = cache.getOrElse(Pair(type, id)) {
                             val resource = ResourceRegistry.createInstance(type)
-                            deserialize(resource, related, included)
+                            deserializeToResource(resource, related, included)
                             resource
                         }
                         relatedResources.add(cached)
@@ -62,19 +117,19 @@ class Deserializer {
                 }
 
                 if (relatedResources.size == 1 && relationship.isSingle) {
-                    model.relationships[key] = relatedResources.first()
+                    resource.relationships[key] = relatedResources.first()
                 } else {
-                    model.relationships[key] = relatedResources.trackChanges { _, list ->
-                        model.relationships.trackChange(key, null, list)
+                    resource.relationships[key] = relatedResources.trackChanges { _, list ->
+                        resource.relationships.trackChange(key, null, list)
                     }
                 }
             }
         }
-        model.relationships.clearChanges()
+        resource.relationships.clearChanges()
 
-        model.links.putAll(datum.links)
-        model.meta.putAll(datum.meta)
+        resource.links.putAll(datum.links)
+        resource.meta.putAll(datum.meta)
 
-        return model
+        return resource
     }
 }

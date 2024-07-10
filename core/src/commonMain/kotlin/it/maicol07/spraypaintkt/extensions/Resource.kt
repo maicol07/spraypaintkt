@@ -2,7 +2,9 @@ package it.maicol07.spraypaintkt.extensions
 
 import it.maicol07.spraypaintkt.JsonApiException
 import it.maicol07.spraypaintkt.JsonApiResource
+import it.maicol07.spraypaintkt.JsonApiSingleResponse
 import it.maicol07.spraypaintkt.Resource
+import it.maicol07.spraypaintkt.util.Deserializer
 import kotlinx.serialization.json.Json
 
 
@@ -11,7 +13,6 @@ import kotlinx.serialization.json.Json
  *
  * @return `true` if the resource was saved successfully. `false` otherwise.
  */
-@Suppress("UNCHECKED_CAST")
 suspend fun <R: Resource> R.save(): Boolean {
     val url = companion.urlForResource(this)
     val response = if (isPersisted) {
@@ -24,9 +25,7 @@ suspend fun <R: Resource> R.save(): Boolean {
     }
 
     if (!isPersisted && response.statusCode == 201) {
-        val jsonApiResponse = Json.parseToJsonElement(response.body).extractedContent as JsonObjectMap?
-            ?: throw JsonApiException(response.statusCode, response.body)
-        fromJsonApi(JsonApiResource(jsonApiResponse["data"] as JsonObjectMap), emptyList())
+        fromJsonApiResponse(JsonApiSingleResponse.fromJsonApiString(response.body))
     }
 
     return true

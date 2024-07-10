@@ -27,6 +27,7 @@ dependencies {
     implementation(libs.auto.service.annotations)
     implementation(kotlin("reflect"))
     implementation(libs.kasechange)
+    implementation(libs.kotlinx.serialization.json)
 }
 
 mavenPublishing {

@@ -7,21 +7,21 @@ import kotlin.reflect.KClass
  */
 object ResourceRegistry {
     /** The registered resources. */
-    val resources = mutableMapOf<KClass<out Resource>, Resource.Companion<out Resource>>()
+    val resources = mutableMapOf<KClass<out Resource>, Resource.CompanionObj<out Resource>>()
 
     /**
      * Registers a resource.
      *
-     * @param resourceCompanion The companion object of the resource.
+     * @param resourceCompanionObj The companion object of the resource.
      * @param update Whether to update the resource if it already exists.
      * @param R The type of the resource.
      */
     inline fun <reified R: Resource> registerResource(
-        resourceCompanion: Resource.Companion<R>,
+        resourceCompanionObj: Resource.CompanionObj<R>,
         update: Boolean = true
     ) {
         if (!update && resources.containsKey(R::class)) throw IllegalArgumentException("Resource ${R::class} already registered")
-        resources[R::class] = resourceCompanion
+        resources[R::class] = resourceCompanionObj
     }
 
     /**
@@ -69,9 +69,9 @@ object ResourceRegistry {
      *
      * @return The companion object of the resource.
      */
-    operator fun <R: Resource> get(clazz: KClass<R>): Resource.Companion<R> {
+    operator fun <R: Resource> get(clazz: KClass<R>): Resource.CompanionObj<R> {
         @Suppress("UNCHECKED_CAST")
-        return resources[clazz] as Resource.Companion<R>? ?: throw IllegalArgumentException("No registered resource found for class $clazz")
+        return resources[clazz] as Resource.CompanionObj<R>? ?: throw IllegalArgumentException("No registered resource found for class $clazz")
     }
 
     /**
@@ -79,7 +79,7 @@ object ResourceRegistry {
      *
      * @param R The type of the resource.
      */
-    inline fun <reified R: Resource> get(): Resource.Companion<R> = get(R::class)
+    inline fun <reified R: Resource> get(): Resource.CompanionObj<R> = get(R::class)
 
     /**
      * Gets a resource companion.
@@ -88,18 +88,18 @@ object ResourceRegistry {
      *
      * @return The companion object of the resource.
      */
-    operator fun get(type: String): Resource.Companion<out Resource> =
+    operator fun get(type: String): Resource.CompanionObj<out Resource> =
         resources.entries.firstOrNull { it.value.resourceType == type }?.value ?: throw IllegalArgumentException("No registered resource found for type $type")
 
     /**
      * Gets a resource class.
      *
-     * @param companion The companion object of the resource.
+     * @param companionObj The companion object of the resource.
      *
      * @return The class of the resource.
      */
-    operator fun get(companion: Resource.Companion<out Resource>): KClass<out Resource> =
-        resources.entries.firstOrNull { it.value == companion }?.key ?: throw IllegalArgumentException("No registered resource found for companion $companion")
+    operator fun get(companionObj: Resource.CompanionObj<out Resource>): KClass<out Resource> =
+        resources.entries.firstOrNull { it.value == companionObj }?.key ?: throw IllegalArgumentException("No registered resource found for companion $companionObj")
 
     /**
      * Gets a resource class.
@@ -108,6 +108,6 @@ object ResourceRegistry {
      *
      * @return The class of the resource.
      */
-    fun getEntry(type: String): Pair<KClass<out Resource>, Resource.Companion<out Resource>> =
+    fun getEntry(type: String): Pair<KClass<out Resource>, Resource.CompanionObj<out Resource>> =
         resources.entries.firstOrNull { it.value.resourceType == type }?.toPair() ?: throw IllegalArgumentException("No registered resource found for type $type")
 }

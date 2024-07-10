@@ -2,6 +2,10 @@
 
 package it.maicol07.spraypaintkt
 
+import it.maicol07.spraypaintkt.extensions.JsonObjectMap
+import it.maicol07.spraypaintkt.extensions.extractedContent
+import kotlinx.serialization.json.Json
+
 /**
  * Base fields for a JSON:API response
  *
@@ -40,6 +44,13 @@ class JsonApiSingleResponse(
             }
             return JsonApiResource(data as Map<String, Any>? ?: emptyMap())
         }
+
+    companion object {
+        fun fromJsonApiString(jsonApiString: String): JsonApiSingleResponse {
+            val json = Json.parseToJsonElement(jsonApiString).extractedContent as JsonObjectMap
+            return JsonApiSingleResponse(json)
+        }
+    }
 }
 
 /**
@@ -52,6 +63,13 @@ class JsonApiCollectionResponse(
 ): JsonApiResponse(response) {
     /** The data of the response. */
     val data = (response["data"] as List<Map<String, Any>>).map { JsonApiResource(it) }
+
+    companion object {
+        fun fromJsonApiString(jsonApiString: String): JsonApiCollectionResponse {
+            val json = Json.parseToJsonElement(jsonApiString).extractedContent as JsonObjectMap
+            return JsonApiCollectionResponse(json)
+        }
+    }
 }
 
 /**
@@ -78,6 +96,13 @@ class JsonApiResource(
     val links: Map<String, Any?> by lazy { response.getOrElse("links") { emptyMap<String, Any>() } as Map<String, Any> }
     /** The meta of the resource. */
     val meta: Map<String, Any?> by lazy { response.getOrElse("meta") { emptyMap<String, Any>() } as Map<String, Any> }
+
+    companion object {
+        fun fromJsonApiString(jsonApiString: String): JsonApiResource {
+            val json = Json.parseToJsonElement(jsonApiString).extractedContent as Map<String, Any>
+            return JsonApiResource(json)
+        }
+    }
 }
 
 /**

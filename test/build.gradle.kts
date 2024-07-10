@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm")
     alias(libs.plugins.ksp)
+    kotlin("plugin.serialization")
 }
 
 dependencies {
@@ -14,6 +15,7 @@ dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test)
     ksp(projects.processor)
+    testImplementation(libs.kotlinx.serialization.json)
 }
 
 java {
