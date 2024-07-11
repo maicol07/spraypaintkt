@@ -228,18 +228,18 @@ val user = response.data
 ### Filtering
 You can filter the results using the `where` method:
 ```kotlin
-val response = Book.where("title", "Journey to the Center of the Earth").all<User>()
+val response = Book.where("title", "Journey to the Center of the Earth").all()
 val user = response.data
 
 // You can also use the `where` method multiple times
-val response = Book.where("name", "Journey to the Center of the Earth").where("email", "john@doe.com").all()
+val response = Book.where("title", "Journey to the Center of the Earth").where("email", "john@doe.com").all()
 val user = response.data
 ```
 
 ### Sorting
 You can sort the results using the `order` method:
 ```kotlin
-val response = Book.order("name", SortDirection.DESC).all()
+val response = Book.order("title", SortDirection.DESC).all()
 val user = response.data
 ```
 
