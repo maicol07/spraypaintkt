@@ -2,6 +2,7 @@ package it.maicol07.spraypaintkt_test
 
 import it.maicol07.spraypaintkt.SortDirection
 import it.maicol07.spraypaintkt_test.models.Book
+import it.maicol07.spraypaintkt_test.models.ExtendedBook
 import it.maicol07.spraypaintkt_test.models.Review
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -93,6 +94,17 @@ class QueryTest : BaseTest() {
 
         val review = reviews.data.first()
         assertEquals("Review", review.type)
+    }
+
+    @Test
+    fun extended() = runTest {
+        val books = ExtendedBook.all()
+        assertIs<List<ExtendedBook>>(books.data)
+        assertEquals(100, books.data.size)
+        val book = books.data.first()
+        assertIs<ExtendedBook>(book)
+        assertEquals("Book", book.type)
+        assertEquals(50, book.publisher_id)
     }
 
 //    @Test
