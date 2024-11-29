@@ -17,7 +17,7 @@ abstract class BaseTest {
     data object AppJsonApiConfig: JsonApiConfig {
         override val baseUrl: String = "https://safrs.onrender.com/api"
         override val paginationStrategy: PaginationStrategy = PaginationStrategy.OFFSET_BASED
-        override val httpClient: HttpClient = KtorHttpClient({
+        override val httpClient: HttpClient = KtorHttpClient(httpClientOptions = {
             install(Logging) {
                 logger = Logger.DEFAULT
                 level = LogLevel.ALL
