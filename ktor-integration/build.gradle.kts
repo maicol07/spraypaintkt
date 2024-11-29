@@ -23,6 +23,7 @@ kotlin {
   }
   jvm()
   linuxX64()
+  mingwX64()
 
   listOf(
     iosX64(),
@@ -34,6 +35,18 @@ kotlin {
     it.binaries.framework {
       baseName = "ktor-integration"
     }
+  }
+
+
+  js {
+    browser()
+    nodejs()
+  }
+  @OptIn(ExperimentalWasmDsl::class)
+  wasmJs {
+    browser()
+    nodejs()
+    d8()
   }
 
   sourceSets {
