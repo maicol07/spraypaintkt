@@ -1,5 +1,5 @@
 import org.jetbrains.dokka.gradle.DokkaTaskPartial
-import java.net.URL
+import java.net.URI
 
 plugins {
     //trick: for the same plugin versions in all sub-modules
@@ -31,7 +31,7 @@ subprojects {
             // Read docs for more details: https://kotlinlang.org/docs/dokka-gradle.html#source-link-configuration
             sourceLink {
                 localDirectory.set(rootProject.projectDir)
-                remoteUrl.set(URL("https://github.com/maicol07/spraypaintkt"))
+                remoteUrl.set(URI.create("https://github.com/maicol07/spraypaintkt").toURL())
                 remoteLineSuffix.set("#L")
             }
         }
