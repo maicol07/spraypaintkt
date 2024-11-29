@@ -13,6 +13,7 @@ import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
+import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
@@ -164,12 +165,17 @@ class ResourceSchemaProcessor(
         .addProperty(
             PropertySpec.builder("config", JsonApiConfig::class)
                 .addModifiers(KModifier.OVERRIDE)
-                .initializer("%T", resourceSchemaAnnotation.config.let {
-                    if (it.qualifiedName == JsonApiConfig::class.qualifiedName || !it.isSubclassOf(JsonApiConfig::class))
-                        defaultConfig?.asType(emptyList())?.toTypeName()
-                            ?: throw IllegalStateException("No default JsonApiConfig found. Please provide a config in the ResourceSchema annotation or annotate a JsonApiConfig object with @DefaultInstance")
-                    else it
-                })
+                .initializer(
+                    "%T", (try {
+                        resourceSchemaAnnotation.config
+                    } catch (e: NoSuchElementException) {
+                        JsonApiConfig::class
+                    }).let {
+                        if (it.qualifiedName == JsonApiConfig::class.qualifiedName || !it.isSubclassOf(JsonApiConfig::class))
+                            defaultConfig?.asType(emptyList())?.toTypeName()
+                                ?: throw IllegalStateException("No default JsonApiConfig found. Please provide a config in the ResourceSchema annotation or annotate a JsonApiConfig object with @DefaultInstance")
+                        else it
+                    })
                 .build()
         )
         .addProperty(
@@ -221,18 +227,33 @@ class ResourceSchemaProcessor(
                 .build()
         }.asIterable()
 
-    private fun generateToOneRelationships(resolver: Resolver, resourceSchema: KSClassDeclaration): Iterable<PropertySpec> = resourceSchema.annotations
+    private data class RelationshipPropertyData(
+        var delegateFormat: String,
+        var delegateParams: List<Any?>,
+        var propertyType: TypeName
+    )
+
+    private fun generateRelationships(
+        resolver: Resolver,
+        resourceSchema: KSClassDeclaration,
+        relationshipClass: KClass<*>,
+        propertyDataGetter: (canBeNull: Boolean, defaultValueGetter: KSPropertyDeclaration?, propertyName: String, resourceTypeName: TypeName) -> RelationshipPropertyData
+    ): Iterable<PropertySpec> = resourceSchema.annotations
         // TODO: Change when https://github.com/google/ksp/issues/1129 is fixed
-        .filter { it.annotationType.resolve().declaration.qualifiedName?.asString() == ToOneRelationship::class.qualifiedName }
+        .filter { it.annotationType.resolve().declaration.qualifiedName?.asString() == relationshipClass.qualifiedName }
         .map { annotation ->
             val arguments = annotation.arguments.associate { it.name?.asString() to it.value }
-            val propertyName = (arguments["propertyName"] as String).ifEmpty { arguments["name"] as String }
-            val resourceSchemaType = arguments["resourceType"] as KSType
-            val resourceSchemaName = resourceSchemaType.declaration.qualifiedName ?:
-            throw IllegalStateException("Resource type of to-one relationship $propertyName of schema ${resourceSchema.qualifiedName!!.asString()} not found")
-            val canBeEmpty = arguments["canBeEmpty"] as Boolean
+            val propertyName = (arguments["propertyName"] as? String)
+                ?.ifEmpty { null }
+                ?: arguments["name"] as? String
+                ?: throw IllegalStateException("No name provided for ${relationshipClass.simpleName} in schema ${resourceSchema.qualifiedName!!.asString()}")
+            val resourceSchemaType = arguments["resourceType"] as? KSType
+                ?: throw IllegalStateException("No resource type provided for ${relationshipClass.simpleName} $propertyName in schema ${resourceSchema.qualifiedName!!.asString()}")
+            val resourceSchemaName = resourceSchemaType.declaration.qualifiedName
+                ?: throw IllegalStateException("Resource type of  ${relationshipClass.simpleName} $propertyName of schema ${resourceSchema.qualifiedName!!.asString()} not found")
+            val canBeNull = arguments["canBeNull"] as? Boolean ?: false
 
-            logger.info("Generating one-to-one relationship $propertyName of type $resourceSchemaName")
+            logger.info("Generating ${relationshipClass.simpleName} $propertyName of type $resourceSchemaName")
 
             val relationResourceSchema = resolver.getClassDeclarationByName(resourceSchemaName)
             if (relationResourceSchema!!.annotations.none { it.annotationType.resolve().declaration.qualifiedName?.asString() == ResourceSchema::class.qualifiedName })
@@ -241,63 +262,56 @@ class ResourceSchemaProcessor(
             val resourceTypeName = ClassName.bestGuess(resourceSchemaName.asString().removeSuffix("Schema"))
 
             val defaultValueGetter = resourceSchema.getAllProperties().firstOrNull { it ->
-                it.simpleName.asString() == "default${propertyName.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }}" }
-
-            val delegate = if (canBeEmpty) "nullableHasOneRelationship" else "hasOneRelationship"
-            val delegateFormat = if (defaultValueGetter != null) "%M(%S, %L)" else "%M(%S)"
-            val delegateParams = mutableListOf(
-                MemberName("it.maicol07.spraypaintkt.extensions", delegate),
-                propertyName
-            ).apply {
-                if (defaultValueGetter != null) add("super.${defaultValueGetter.simpleName.asString()}")
+                it.simpleName.asString() == "default${propertyName.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }}"
             }
 
-            PropertySpec.builder(propertyName, resourceTypeName.copy(nullable = canBeEmpty))
+            val (delegateFormat, delegateParams, propertyType) = propertyDataGetter(canBeNull, defaultValueGetter, propertyName, resourceTypeName)
+
+            PropertySpec.builder(propertyName, propertyType)
                 .mutable()
                 .delegate(delegateFormat, *delegateParams.toTypedArray())
                 .build()
         }
         .asIterable()
 
-    private fun generateToManyRelationships(resolver: Resolver, resourceSchema: KSClassDeclaration): Iterable<PropertySpec> = resourceSchema.annotations
-        // TODO: Change when https://github.com/google/ksp/issues/1129 is fixed
-        .filter { it.annotationType.resolve().declaration.qualifiedName?.asString() == ToManyRelationship::class.qualifiedName }
-        .map { annotation ->
-            val arguments = annotation.arguments.associate { it.name?.asString() to it.value }
-            val propertyName = (arguments["propertyName"] as String).ifEmpty { arguments["name"] as String }
-            val resourceSchemaType = arguments["resourceType"] as KSType
-            val resourceSchemaName = resourceSchemaType.declaration.qualifiedName ?:
-            throw IllegalStateException("Resource type of to-many relationship $propertyName of schema ${resourceSchema.qualifiedName!!.asString()} not found")
-            val canBeNull = arguments["canBeNull"] as Boolean
-
-            logger.info("Generating one-to-many relationship $propertyName of type ${resourceSchemaName.asString()}")
-
-            val relationResourceSchema = resolver.getClassDeclarationByName(resourceSchemaName)
-            if (relationResourceSchema!!.annotations.none { it.annotationType.resolve().declaration.qualifiedName?.asString() == ResourceSchema::class.qualifiedName })
-                throw IllegalStateException("$propertyName relationship type is not a ResourceSchema")
-
-            val resourceTypeName = ClassName.bestGuess(resourceSchemaName.asString().removeSuffix("Schema"))
-
-            val defaultValueGetter = resourceSchema.getAllProperties().firstOrNull { it ->
-                it.simpleName.asString() == "default${propertyName.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }}" }
-
-            val delegateFormat = if (canBeNull || defaultValueGetter != null) "%M(%S, %L)" else "%M(%S)"
-            val delegateParams = mutableListOf(
-                MemberName("it.maicol07.spraypaintkt.extensions", "hasManyRelationship"),
-                propertyName
-            ).apply {
-                when {
-                    defaultValueGetter != null -> add("super.${defaultValueGetter.simpleName.asString()}")
-                    canBeNull -> add("emptyList()")
-                }
-            }
-
-            PropertySpec.builder(propertyName, List::class.asTypeName().parameterizedBy(resourceTypeName).copy(nullable = canBeNull))
-                .mutable()
-                .delegate(delegateFormat, *delegateParams.toTypedArray())
-                .build()
+    private fun generateToOneRelationships(resolver: Resolver, resourceSchema: KSClassDeclaration): Iterable<PropertySpec> = generateRelationships(
+        resolver,
+        resourceSchema,
+        relationshipClass = ToOneRelationship::class,
+        propertyDataGetter = { canBeNull, defaultValueGetter, propertyName, resourceTypeName ->
+            RelationshipPropertyData(
+                delegateFormat = if (defaultValueGetter != null) "%M(%S, %L)" else "%M(%S)",
+                delegateParams = mutableListOf(
+                    MemberName("it.maicol07.spraypaintkt.extensions", if (canBeNull) "nullableHasOneRelationship" else "hasOneRelationship"),
+                    propertyName
+                ).apply {
+                    if (defaultValueGetter != null) add("super.${defaultValueGetter.simpleName.asString()}")
+                },
+                propertyType = resourceTypeName.copy(nullable = canBeNull)
+            )
         }
-        .asIterable()
+    )
+
+    private fun generateToManyRelationships(resolver: Resolver, resourceSchema: KSClassDeclaration): Iterable<PropertySpec> = generateRelationships(
+        resolver,
+        resourceSchema,
+        relationshipClass = ToManyRelationship::class,
+        propertyDataGetter = { canBeNull, defaultValueGetter, propertyName, resourceTypeName ->
+            RelationshipPropertyData(
+                delegateFormat = if (canBeNull || defaultValueGetter != null) "%M(%S, %L)" else "%M(%S)",
+                delegateParams = mutableListOf(
+                    MemberName("it.maicol07.spraypaintkt.extensions", "hasManyRelationship"),
+                    propertyName
+                ).apply {
+                    when {
+                        defaultValueGetter != null -> add("super.${defaultValueGetter.simpleName.asString()}")
+                        canBeNull -> add("emptyList()")
+                    }
+                },
+                propertyType = List::class.asTypeName().parameterizedBy(resourceTypeName).copy(nullable = canBeNull)
+            )
+        }
+    )
 
     private fun getDefaultConfig(resolver: Resolver): KSClassDeclaration? =
         resolver.getSymbolsWithAnnotation(DefaultInstance::class.qualifiedName!!)
