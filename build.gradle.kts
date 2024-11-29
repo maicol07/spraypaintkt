@@ -9,6 +9,11 @@ plugins {
     alias(libs.plugins.mavenPublish) apply false
     alias(libs.plugins.dokka)
     alias(libs.plugins.ksp) apply false
+
+    // Sample
+    alias(libs.plugins.compose.compiler).apply(false)
+    alias(libs.plugins.compose).apply(false)
+    alias(libs.plugins.android.application).apply(false)
 }
 
 rootProject.extra.set("libVersion", System.getenv("LIB_VERSION") ?: "0.1.0")
@@ -16,6 +21,11 @@ rootProject.extra.set("libVersion", System.getenv("LIB_VERSION") ?: "0.1.0")
 version = rootProject.extra.get("libVersion")!!
 
 subprojects {
+    // Exclude sample
+    if (name == "sample") {
+        return@subprojects
+    }
+
     apply(plugin = "org.jetbrains.dokka")
 
     tasks {

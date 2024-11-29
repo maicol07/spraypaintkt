@@ -36,4 +36,5 @@ include(
     ":annotation",
     ":processor",
     ":test",
+    ":sample:composeApp",
 )
