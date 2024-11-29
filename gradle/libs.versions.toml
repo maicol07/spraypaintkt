@@ -1,17 +1,17 @@
 [versions]
-agp = "8.5.2"
+agp = "8.6.1"
 autoServiceAnnotations = "1.1.1"
 autoServiceKsp = "1.2.0"
 kasechange = "1.4.1"
-kotlin = "2.0.21"
-kotlinpoetKsp = "1.18.1"
+kotlin = "2.1.0"
+kotlinpoetKsp = "2.0.0"
 kotlinxCoroutinesTest = "1.9.0"
 kotlinxSerializationJson = "1.7.3"
 ktor = "3.0.1"
 logbackClassic = "1.5.12"
 mavenPublish = "0.29.0"
 dokka = "1.9.20"
-ksp = "2.0.21-1.0.25"
+ksp = "2.1.0-1.0.29"
 
 [libraries]
 auto-service-annotations = { module = "com.google.auto.service:auto-service-annotations", version.ref = "autoServiceAnnotations" }
