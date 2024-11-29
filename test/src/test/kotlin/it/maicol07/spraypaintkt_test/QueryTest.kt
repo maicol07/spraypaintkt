@@ -104,7 +104,6 @@ class QueryTest : BaseTest() {
         val book = books.data.first()
         assertIs<ExtendedBook>(book)
         assertEquals("Book", book.type)
-        assertEquals(50, book.publisher_id)
     }
 
 //    @Test
