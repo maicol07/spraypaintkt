@@ -24,6 +24,7 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
@@ -48,9 +49,11 @@ import kotlinx.serialization.Serializable
 import net.pearx.kasechange.toSnakeCase
 import java.util.Locale
 import kotlin.reflect.KClass
+import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.declaredMemberFunctions
 import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.full.isSubclassOf
+import kotlin.reflect.full.memberProperties
 
 /** Processes [ResourceSchema] annotations in order to create 'model' representations of annotated classes. */
 class ResourceSchemaProcessor(
@@ -70,10 +73,6 @@ class ResourceSchemaProcessor(
             .filterIsInstance(KSClassDeclaration::class.java)
             .forEach { resourceSchema ->
                 logger.info("Found annotated class: ${resourceSchema.qualifiedName?.asString()}")
-
-                if (resourceSchema.classKind != ClassKind.INTERFACE) {
-                    throw IllegalStateException("Class ${resourceSchema.qualifiedName?.asString()} is not an interface")
-                }
 
                 if (!resourceSchema.simpleName.asString().endsWith("Schema")) {
                     throw IllegalStateException("Class ${resourceSchema.qualifiedName?.asString()} does not end with 'Schema'")
@@ -122,8 +121,14 @@ class ResourceSchemaProcessor(
         logger.info("Generating resource class: $resourceSimpleName")
 
         return TypeSpec.classBuilder(resourceSimpleName)
-            .superclass(Resource::class)
-            .addSuperinterface(resourceSchema.toClassName())
+            .addSuperinterface(Resource::class)
+            .let {
+                when (resourceSchema.classKind) {
+                    ClassKind.INTERFACE -> it.addSuperinterface(resourceSchema.toClassName())
+                    ClassKind.CLASS -> it.superclass(resourceSchema.toClassName())
+                    else -> throw IllegalStateException("ResourceSchema class must be an interface or a class")
+                }
+            }
             .addType(generateResourceCompanionObject(resourceSchema, resourceClassName, resourceSchemaAnnotation, defaultConfig))
             .addProperty(
                 PropertySpec.builder("companion", Resource.CompanionObj::class.asTypeName().parameterizedBy(resourceClassName))
@@ -131,6 +136,7 @@ class ResourceSchemaProcessor(
                     .initializer("Companion")
                     .build()
             )
+            .addProperties(generateBaseResourceProperties())
             .addAnnotation(AnnotationSpec.builder(Serializable::class.asClassName()).addMember("%T::class", ResourceSerializer::class).build())
             .addProperties(generateAttributes(resourceSchema))
             .addProperties(generateToOneRelationships(resolver, resourceSchema))
@@ -201,6 +207,38 @@ class ResourceSchemaProcessor(
                 .build()
         )
         .build()
+
+    private val BaseResourceProperties = mapOf(
+        "id" to CodeBlock.of("%L", "null"),
+        "isPersisted" to CodeBlock.of("%L", false),
+        "attributes" to CodeBlock.of("%L.%M()", "mutableMapOf<String, Any?>()", MemberName("it.maicol07.spraypaintkt.extensions.", "trackChanges")),
+        "relationships" to CodeBlock.of("%L.%M()", "mutableMapOf<String, Any?>()", MemberName("it.maicol07.spraypaintkt.extensions.", "trackChanges")),
+        "meta" to CodeBlock.of("%L", "mutableMapOf()"),
+        "links" to CodeBlock.of("%L", "mutableMapOf()"),
+        "type" to CodeBlock.of("%L", "lazy { companion.resourceType }")
+    )
+    private val BaseResourcePropertiesWithDelegate = listOf("type")
+
+    private fun generateBaseResourceProperties(): Iterable<PropertySpec> = Resource::class.memberProperties
+        .filter { it.name in BaseResourceProperties.keys }
+        .map { property ->
+            var returnType = property.returnType.asTypeName()
+            // Workaround for https://github.com/square/kotlinpoet/issues/279
+            if (property.returnType.toString().startsWith("kotlin.collections.MutableMap")) {
+                returnType = ClassName("kotlin.collections", "MutableMap").parameterizedBy(property.returnType.arguments.map { it.type!!.asTypeName() })
+            }
+            PropertySpec.builder(property.name, returnType)
+                .addModifiers(KModifier.OVERRIDE)
+                .mutable(property is KMutableProperty<*>)
+                .let {
+                    if (property.name in BaseResourcePropertiesWithDelegate) {
+                        it.delegate(BaseResourceProperties[property.name]!!)
+                    } else {
+                        it.initializer(BaseResourceProperties[property.name]!!)
+                    }
+                }
+                .build()
+        }.asIterable()
 
     @OptIn(KspExperimental::class)
     fun generateAttributes(resourceSchema: KSClassDeclaration): Iterable<PropertySpec> = resourceSchema.getAllProperties()

@@ -99,19 +99,30 @@ data object AppJsonApiConfig: JsonApiConfig {
 ```
 
 ## Defining resources
-You can define your resources by creating an interface that ends with `Schema` and annotating it with the `@ResourceSchema` annotation.
+You can define your resources by creating an interface or (abstract) class that ends with `Schema` and annotating it with the `@ResourceSchema` annotation.
 The annotation requires the `resourceType` and `endpoint` properties to be set, but you can also set the configuration object to use (if not the default one).
 ```kotlin
 @ResourceSchema(resourceType = "Book", endpoint = "Books")
 interface BookSchema {}
+
+// Or
+@ResourceSchema(resourceType = "Book", endpoint = "Books")
+abstract class BookSchema {}
 ```
 
 ### Adding attributes
-You can add attributes to your resource schema by appending the `@Attr` annotation to an interface property:
+You can add attributes to your resource schema by appending the `@Attr` annotation to an interface (or abstract class) property:
 ```kotlin
 @ResourceSchema(resourceType = "Book", endpoint = "Books")
 interface BookSchema {
     @Attr val title: String
+}
+
+// Or
+
+@ResourceSchema(resourceType = "Book", endpoint = "Books")
+abstract class BookSchema {
+    @Attr abstract val title: String
 }
 ```
 
@@ -132,12 +143,19 @@ interface BookSchema {
 }
 ```
 
-You can set a default value for the attribute by setting a getter for the property:
+You can set a default value for the attribute by setting a getter for the interface property or an initializer for the abstract class property:
 ```kotlin
 @ResourceSchema(resourceType = "Book", endpoint = "Books")
 interface BookSchema {
     @Attr val title: String
         get() = "Default title"
+}
+
+// Or
+
+@ResourceSchema(resourceType = "Book", endpoint = "Books")
+abstract class BookSchema {
+    @Attr val title: String = "Default title"
 }
 ```
 

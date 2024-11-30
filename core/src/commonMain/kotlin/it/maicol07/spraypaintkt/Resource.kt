@@ -1,7 +1,7 @@
 package it.maicol07.spraypaintkt
 
+import it.maicol07.spraypaintkt.extensions.DirtyMap
 import it.maicol07.spraypaintkt.extensions.toJsonElement
-import it.maicol07.spraypaintkt.extensions.trackChanges
 import it.maicol07.spraypaintkt.interfaces.JsonApiConfig
 import it.maicol07.spraypaintkt.util.Deserializer
 import kotlinx.serialization.Serializable
@@ -14,7 +14,7 @@ import kotlin.reflect.KClass
  * A JSON:API resource.
  */
 @Serializable(with = ResourceSerializer::class)
-abstract class Resource {
+interface Resource {
     /**
      * A companion object for the resource.
      *
@@ -68,28 +68,28 @@ abstract class Resource {
     }
 
     /** The companion object of the resource. */
-    abstract val companion: CompanionObj<out Resource>
+    val companion: CompanionObj<out Resource>
 
     /** The ID of the resource. */
-    var id: String? = null
+    var id: String?
 
     /** Whether the resource is persisted. */
-    var isPersisted = false
+    var isPersisted: Boolean
 
     /** The attributes of the resource. */
-    val attributes = mutableMapOf<String, Any?>().trackChanges()
+    val attributes: DirtyMap<String, Any?>
 
     /** The relationships of the resource. */
-    val relationships = mutableMapOf<String, Any?>().trackChanges()
+    val relationships: DirtyMap<String, Any?>
 
     /** The meta of the resource. */
-    val meta = mutableMapOf<String, Any?>()
+    val meta: MutableMap<String, Any?>
 
     /** The links of the resource. */
-    val links = mutableMapOf<String, Any?>()
+    val links: MutableMap<String, Any?>
 
     /** The type of the resource. */
-    val type: String by lazy { companion.resourceType }
+    val type: String
 
     /**
      * Serialize the resource to a JSON:API object.

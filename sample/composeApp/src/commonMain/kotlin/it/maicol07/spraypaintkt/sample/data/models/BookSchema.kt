@@ -10,7 +10,7 @@ import it.maicol07.spraypaintkt_annotation.ToOneRelationship
 @ToOneRelationship("publisher", PublisherSchema::class)
 @ToOneRelationship("author", PersonSchema::class)
 @ToOneRelationship("reader", PersonSchema::class)
-interface BookSchema {
-    @Attr val title: String
-    @Attr var publisher_id: Int
+abstract class BookSchema {
+    @Attr abstract val title: String
+    @Attr abstract var publisher_id: Int
 }
