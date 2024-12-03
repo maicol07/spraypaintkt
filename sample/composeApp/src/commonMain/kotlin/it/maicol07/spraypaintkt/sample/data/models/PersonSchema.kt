@@ -1,4 +1,4 @@
-package it.maicol07.spraypaintkt_test.models
+package it.maicol07.spraypaintkt.sample.data.models
 
 import it.maicol07.spraypaintkt_annotation.Attr
 import it.maicol07.spraypaintkt_annotation.ResourceSchema

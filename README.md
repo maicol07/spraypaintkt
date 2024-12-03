@@ -111,7 +111,7 @@ abstract class BookSchema {}
 ```
 
 ### Adding attributes
-You can add attributes to your resource schema by appending the `@Attr` annotation to an interface (or abstract class) property:
+You can add attributes to your resource schema by prepending the `@Attr` annotation to an interface (or abstract class) property:
 ```kotlin
 @ResourceSchema(resourceType = "Book", endpoint = "Books")
 interface BookSchema {
@@ -159,22 +159,27 @@ abstract class BookSchema {
 }
 ```
 
+> [!IMPORTANT]
+> An interface doesn't have a backing field for the property, so it won't be stored in the property but the getter will be called every time you access the property.
+
 ### Adding relationships
-You can add relationships to your model by appending the `@ToOneRelationship` or `@ToManyRelationship` annotation to an interface property.
-The annotation requires the `relationship` property to be set to the relationship name returned by the API and the related ResourceSchema class.
+You can add relationships to your model by prepending the `@Relation` annotation to an interface (or abstract class) property.
 ```kotlin
 @ResourceSchema(resourceType = "Book", endpoint = "Books")
-@ToManyRelationship("reviews", ReviewSchema::class)
-@ToOneRelationship("publisher", PublisherSchema::class)
-@ToOneRelationship("author", PersonSchema::class)
-@ToOneRelationship("reader", PersonSchema::class)
 interface BookSchema {
     @Attr val title: String
+    
+    @Relation val reviews: List<ReviewSchema>
+    @Relation val publisher: PublisherSchema
+    @Relation val author: PersonSchema
+    @Relation val reader: PersonSchema
 }
 ```
-To-One relationships are automatically converted to the correct type, while To-Many relationships are always converted to a `List` (with the model type in generics).
+To-One relationships are automatically identified with the correct type, while To-Many relationships are identified when the type is a `List` or `MutableList` (with the model type in generics).
+> [!IMPORTANT]
+> It makes no difference if you use `List` or `MutableList`, the library will always return a `MutableList` if the annotation `mutable` property is set to `true` (default is `true`).
 
-If you wish to use a different property name than the one returned by the API, you can set the relationship name returned by the API in the `@ToOneRelationship` or `@ToManyRelationship` annotation:
+If you wish to use a different property name than the one returned by the API, you can set the relationship name returned by the API in the annotation:
 ```kotlin
 @ResourceSchema(resourceType = "Book", endpoint = "Books")
 @ToManyRelationship("reviews", ReviewSchema::class, propertyName = "my_reviews")
@@ -183,38 +188,42 @@ If you wish to use a different property name than the one returned by the API, y
 @ToOneRelationship("reader", PersonSchema::class)
 interface BookSchema {
     @Attr val title: String
+    
+    @Relation("field_reviews") val reviews: List<ReviewSchema>
+    @Relation val publisher: PublisherSchema
+    @Relation val author: PersonSchema
+    @Relation val reader: PersonSchema
 }
 ```
 
-You can set a default value for the relationship by adding a function to the interface with the following name: `default<Relationship>` (where `<Relationship>` is the relationship name with the first letter capitalized). The returned value will be used as the default value for the relationship.
+You can set a default value for the relationship by setting a getter for the interface property or an initializer for the abstract class property:
 ```kotlin
 @ResourceSchema(resourceType = "Book", endpoint = "Books")
-@ToManyRelationship("reviews", ReviewSchema::class)
-@ToOneRelationship("publisher", PublisherSchema::class)
-@ToOneRelationship("author", PersonSchema::class)
-@ToOneRelationship("reader", PersonSchema::class, canBeEmpty = true)
 interface BookSchema {
     @Attr val title: String
     
-    fun defaultReader(): Person? {
-        return null
-    }
+    @Relation val reviews: List<ReviewSchema>
+    @Relation val publisher: PublisherSchema
+    @Relation val author: PersonSchema
+    @Relation val reader: PersonSchema?
+        get() = null
+}
+
+// Or
+
+@ResourceSchema(resourceType = "Book", endpoint = "Books")
+abstract class BookSchema {
+    @Attr abstract val title: String
+    
+    @Relation abstract val reviews: List<ReviewSchema>
+    @Relation abstract val publisher: PublisherSchema
+    @Relation abstract val author: PersonSchema
+    @Relation val reader: PersonSchema? = null
 }
 ```
 
-#### Nullable relationships
-By default, relationships are not nullable. If you want to make a relationship nullable, you can set the `canBeEmpty` property in the `@ToOneRelationship` to `true`.
-```kotlin
-@ResourceSchema(resourceType = "Book", endpoint = "Books")
-@ToManyRelationship("reviews", ReviewSchema::class)
-@ToOneRelationship("publisher", PublisherSchema::class)
-@ToOneRelationship("author", PersonSchema::class)
-@ToOneRelationship("reader", PersonSchema::class, canBeEmpty = true)
-interface BookSchema {
-    @Attr val title: String
-}
-```
-When empty, to-many relationships will be an empty list, while to-one relationships will be `null`. However, if you need to have `null` as possible value for a To-Many relationship, you can use the `canBeNull` property in the `@ToManyRelationship` annotation.
+> [!TIP]
+> If you want a relationship to be nullable (it can assume the value `null`), you can set the type nullable by adding a `?` after the type.
 
 ### Registering resources
 To be able to resolve the relationships, you need to register the resources. When you use the generated resources class, these are automatically registered.

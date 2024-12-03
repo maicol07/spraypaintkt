@@ -2,6 +2,7 @@ package it.maicol07.spraypaintkt_processor
 
 import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.getAnnotationsByType
+import com.google.devtools.ksp.getKotlinClassByName
 import com.google.devtools.ksp.isAbstract
 import com.google.devtools.ksp.isAnnotationPresent
 import com.google.devtools.ksp.processing.CodeGenerator
@@ -13,8 +14,6 @@ import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
-import com.google.devtools.ksp.symbol.KSPropertyDeclaration
-import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
@@ -27,6 +26,7 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.STAR
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
@@ -42,12 +42,10 @@ import it.maicol07.spraypaintkt.interfaces.JsonApiConfig
 import it.maicol07.spraypaintkt.util.pluralize
 import it.maicol07.spraypaintkt_annotation.Attr
 import it.maicol07.spraypaintkt_annotation.DefaultInstance
+import it.maicol07.spraypaintkt_annotation.Relation
 import it.maicol07.spraypaintkt_annotation.ResourceSchema
-import it.maicol07.spraypaintkt_annotation.ToManyRelationship
-import it.maicol07.spraypaintkt_annotation.ToOneRelationship
 import kotlinx.serialization.Serializable
 import net.pearx.kasechange.toSnakeCase
-import java.util.Locale
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.declaredMemberFunctions
@@ -271,85 +269,111 @@ class ResourceSchemaProcessor(
         var propertyType: TypeName
     )
 
+    @OptIn(KspExperimental::class)
     private fun generateRelationships(
         resolver: Resolver,
-        resourceSchema: KSClassDeclaration,
-        relationshipClass: KClass<*>,
-        propertyDataGetter: (canBeNull: Boolean, defaultValueGetter: KSPropertyDeclaration?, propertyName: String, resourceTypeName: TypeName) -> RelationshipPropertyData
-    ): Iterable<PropertySpec> = resourceSchema.annotations
-        // TODO: Change when https://github.com/google/ksp/issues/1129 is fixed
-        .filter { it.annotationType.resolve().declaration.qualifiedName?.asString() == relationshipClass.qualifiedName }
-        .map { annotation ->
-            val arguments = annotation.arguments.associate { it.name?.asString() to it.value }
-            val propertyName = (arguments["propertyName"] as? String)
-                ?.ifEmpty { null }
-                ?: arguments["name"] as? String
-                ?: throw IllegalStateException("No name provided for ${relationshipClass.simpleName} in schema ${resourceSchema.qualifiedName!!.asString()}")
-            val resourceSchemaType = arguments["resourceType"] as? KSType
-                ?: throw IllegalStateException("No resource type provided for ${relationshipClass.simpleName} $propertyName in schema ${resourceSchema.qualifiedName!!.asString()}")
-            val resourceSchemaName = resourceSchemaType.declaration.qualifiedName
-                ?: throw IllegalStateException("Resource type of  ${relationshipClass.simpleName} $propertyName of schema ${resourceSchema.qualifiedName!!.asString()} not found")
-            val canBeNull = arguments["canBeNull"] as? Boolean ?: false
+        resourceSchema: KSClassDeclaration
+    ): Iterable<PropertySpec> = resourceSchema.getAllProperties()
+        .filter { it.isAnnotationPresent(Relation::class) }
+        .map { property ->
+            val annotation = property.getAnnotationsByType(Relation::class).first()
+            val propertyName = property.simpleName.asString()
+            val relationName = annotation.name.ifEmpty { if (annotation.autoTransform) propertyName.toSnakeCase() else propertyName }
+            logger.info("Generating attribute $propertyName of type ${property.type}")
 
-            logger.info("Generating ${relationshipClass.simpleName} $propertyName of type $resourceSchemaName")
+            val relationType = property.type.resolve()
+            val isToMany =
+                relationType.declaration.qualifiedName?.asString() in listOf("kotlin.collections.List", "kotlin.collections.MutableList") && relationType.arguments.isNotEmpty()
+            val relationResourceSchema = if (isToMany) {
+                val typeArgument = relationType.arguments.first()
+                typeArgument.type!!.resolve()
+            } else relationType
 
-            val relationResourceSchema = resolver.getClassDeclarationByName(resourceSchemaName)
-            if (relationResourceSchema!!.annotations.none { it.annotationType.resolve().declaration.qualifiedName?.asString() == ResourceSchema::class.qualifiedName })
-                throw IllegalStateException("$propertyName relationship type is not a ResourceSchema")
-
-            val resourceTypeName = ClassName.bestGuess(resourceSchemaName.asString().removeSuffix("Schema"))
-
-            val defaultValueGetter = resourceSchema.getAllProperties().firstOrNull { it ->
-                it.simpleName.asString() == "default${propertyName.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }}"
+            if (property.isMutable) {
+                throw IllegalStateException("Relationship $propertyName of type ${resourceSchema.qualifiedName!!.asString()} is a var property. Relationships must be val.")
             }
 
-            val (delegateFormat, delegateParams, propertyType) = propertyDataGetter(canBeNull, defaultValueGetter, propertyName, resourceTypeName)
+            logger.info("Generating relationship $propertyName of type $resourceSchema")
 
-            PropertySpec.builder(propertyName, propertyType)
-                .mutable()
-                .delegate(delegateFormat, *delegateParams.toTypedArray())
+            // Check if the type is a ResourceSchema
+            val relationResourceSchemaResolved = resolver.getKotlinClassByName(relationResourceSchema.declaration.qualifiedName!!.asString())
+            if (relationResourceSchemaResolved!!.annotations.none { it.annotationType.resolve().declaration.qualifiedName?.asString() == ResourceSchema::class.qualifiedName })
+                throw IllegalStateException("$propertyName relationship type $relationResourceSchema of schema ${resourceSchema.qualifiedName!!.asString()} is not a ResourceSchema")
+
+            val resourceTypeName = ClassName.bestGuess(relationResourceSchema.declaration.qualifiedName!!.asString().removeSuffix("Schema"))
+
+            val realType = if (isToMany) {
+                ClassName("kotlin.collections", if (annotation.mutable) "MutableList" else "List").parameterizedBy(resourceTypeName).copy(nullable = relationType.isMarkedNullable)
+            } else {
+                resourceTypeName
+            }
+
+//            val schemaType = if (isToMany) {
+//                ClassName("kotlin.collections", "MutableList").parameterizedBy(relationResourceSchema.toTypeName()).copy(nullable = relationType.isMarkedNullable)
+//            } else {
+//                relationType.toTypeName()
+//            }
+
+            PropertySpec.builder(propertyName, realType)
+                .mutable(annotation.mutable)
+                .getter(
+                    FunSpec.getterBuilder()
+                        .let { builder ->
+                            if (isToMany) {
+                                builder.addAnnotation(AnnotationSpec.builder(Suppress::class).addMember("%S", "UNCHECKED_CAST").build())
+                            } else builder
+                        }
+                        .addCode(
+                            CodeBlock.builder()
+                                .addNamed(
+                                    "return if (%property:L.containsKey(%relationName:S) && (%property:L[%relationName:S] == null || %property:L[%relationName:S] is %relationTypeErased:T)) %property:L[%relationName:S] as %relationType:T else ".let {
+                                        var s = it;
+                                        if (!property.isAbstract()) {
+                                            s += "%defaultValue:L as %relationType:T"
+                                        } else {
+                                            if (isToMany && !realType.isNullable) {
+                                                s += "mutableListOf<%relationTypeInner:T>().%defaultValue:M()"
+                                            } else {
+                                                s += "%defaultValue:L"
+                                            }
+                                        }
+                                        s
+                                    },
+                                    mapOf(
+                                        "property" to "relationships",
+                                        "relationName" to relationName,
+                                        "relationTypeErased" to if (realType is ParameterizedTypeName) realType.copy(typeArguments = listOf(STAR)) else realType,
+                                        "relationType" to realType,
+                                        "defaultValue" to if (!property.isAbstract()) "super.$propertyName" else (if (isToMany) {
+                                            if (realType.isNullable) "null" else MemberName("it.maicol07.spraypaintkt.extensions.", "trackChanges")
+                                        } else {
+                                            if (realType.isNullable) "null" else ("throw NoSuchElementException(\"$propertyName not found\")")
+                                        }),
+                                        "relationTypeInner" to resourceTypeName
+                                    ),
+                                )
+                                .build()
+                        )
+                        .build()
+                )
+                .let {
+                    if (annotation.mutable) {
+                        it.setter(
+                            FunSpec.setterBuilder()
+                                .addParameter("value", realType)
+                                .addCode(
+                                    CodeBlock.builder()
+                                        .addStatement("relationships[%S] = value", relationName)
+                                        .build()
+                                )
+                                .build()
+                        )
+                    } else it
+                }
+                .addModifiers(KModifier.OVERRIDE)
                 .build()
         }
         .asIterable()
-
-    private fun generateToOneRelationships(resolver: Resolver, resourceSchema: KSClassDeclaration): Iterable<PropertySpec> = generateRelationships(
-        resolver,
-        resourceSchema,
-        relationshipClass = ToOneRelationship::class,
-        propertyDataGetter = { canBeNull, defaultValueGetter, propertyName, resourceTypeName ->
-            RelationshipPropertyData(
-                delegateFormat = if (defaultValueGetter != null) "%M(%S, %L)" else "%M(%S)",
-                delegateParams = mutableListOf(
-                    MemberName("it.maicol07.spraypaintkt.extensions", if (canBeNull) "nullableHasOneRelationship" else "hasOneRelationship"),
-                    propertyName
-                ).apply {
-                    if (defaultValueGetter != null) add("super.${defaultValueGetter.simpleName.asString()}")
-                },
-                propertyType = resourceTypeName.copy(nullable = canBeNull)
-            )
-        }
-    )
-
-    private fun generateToManyRelationships(resolver: Resolver, resourceSchema: KSClassDeclaration): Iterable<PropertySpec> = generateRelationships(
-        resolver,
-        resourceSchema,
-        relationshipClass = ToManyRelationship::class,
-        propertyDataGetter = { canBeNull, defaultValueGetter, propertyName, resourceTypeName ->
-            RelationshipPropertyData(
-                delegateFormat = if (canBeNull || defaultValueGetter != null) "%M(%S, %L)" else "%M(%S)",
-                delegateParams = mutableListOf(
-                    MemberName("it.maicol07.spraypaintkt.extensions", "hasManyRelationship"),
-                    propertyName
-                ).apply {
-                    when {
-                        defaultValueGetter != null -> add("super.${defaultValueGetter.simpleName.asString()}")
-                        canBeNull -> add("emptyList()")
-                    }
-                },
-                propertyType = List::class.asTypeName().parameterizedBy(resourceTypeName).copy(nullable = canBeNull)
-            )
-        }
-    )
 
     private fun getDefaultConfig(resolver: Resolver): KSClassDeclaration? =
         resolver.getSymbolsWithAnnotation(DefaultInstance::class.qualifiedName!!)

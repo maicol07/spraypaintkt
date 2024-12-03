@@ -1,13 +1,14 @@
-package it.maicol07.spraypaintkt_test.models
+package it.maicol07.spraypaintkt.sample.data.models
 
 import it.maicol07.spraypaintkt_annotation.Attr
+import it.maicol07.spraypaintkt_annotation.Relation
 import it.maicol07.spraypaintkt_annotation.ResourceSchema
-import it.maicol07.spraypaintkt_annotation.ToManyRelationship
 
 @ResourceSchema("Publisher", "Publishers")
-@ToManyRelationship("books", BookSchema::class)
 interface PublisherSchema {
     @Attr val name: String
     @Attr val stock: Int
     @Attr val custom_field: String
+
+    @Relation val books: MutableList<out BookSchema>
 }
