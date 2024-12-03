@@ -137,8 +137,7 @@ class ResourceSchemaProcessor(
             .addProperties(generateBaseResourceProperties())
             .addAnnotation(AnnotationSpec.builder(Serializable::class.asClassName()).addMember("%T::class", ResourceSerializer::class).build())
             .addProperties(generateAttributes(resourceSchema))
-            .addProperties(generateToOneRelationships(resolver, resourceSchema))
-            .addProperties(generateToManyRelationships(resolver, resourceSchema))
+            .addProperties(generateRelationships(resolver, resourceSchema))
             .build()
     }
 
