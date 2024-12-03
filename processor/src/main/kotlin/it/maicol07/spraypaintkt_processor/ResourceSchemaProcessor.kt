@@ -249,26 +249,39 @@ class ResourceSchemaProcessor(
     @OptIn(KspExperimental::class)
     fun generateAttributes(resourceSchema: KSClassDeclaration): Iterable<PropertySpec> = resourceSchema.getAllProperties()
         .filter { it.isAnnotationPresent(Attr::class) }
-        .map {
-            val annotation = it.getAnnotationsByType(Attr::class).first()
-            val propertyName = it.simpleName.asString()
+        .map { property ->
+            val annotation = property.getAnnotationsByType(Attr::class).first()
+            val propertyName = property.simpleName.asString()
             val attributeName = annotation.name.ifEmpty { if (annotation.autoTransform) propertyName.toSnakeCase() else propertyName }
 
-            logger.info("Generating attribute $propertyName of type ${it.type}")
+            logger.info("Generating attribute $propertyName of type ${property.type}")
 
-            val delegate = if (it.type.toTypeName().isNullable) "nullableAttribute" else "attribute"
-
-            val delegateFormat = if (!it.isAbstract()) "%M(%S, %L)" else "%M(%S)"
-            val delegateParams = listOf(
-                MemberName("it.maicol07.spraypaintkt.extensions", delegate),
-                attributeName,
-                if (!it.isAbstract()) "super.$propertyName" else null
-            )
-
-            PropertySpec.builder(propertyName, it.type.toTypeName())
+            PropertySpec.builder(propertyName, property.type.toTypeName())
                 .addModifiers(KModifier.OVERRIDE)
-                .mutable(it.isMutable || annotation.mutable)
-                .delegate(delegateFormat, *delegateParams.filterNotNull().toTypedArray())
+                .mutable(property.isMutable || annotation.mutable)
+                .getter(
+                    FunSpec.getterBuilder()
+                        .addCode("return ")
+                        .beginControlFlow("if (attributes.containsKey(%S))", attributeName)
+                        .addStatement("attributes[%S] as %T", attributeName, property.type.toTypeName())
+                        .nextControlFlow("else")
+                        .addStatement(
+                            if (!property.isAbstract()) "super.$propertyName"
+                            else (if (property.type.resolve().isMarkedNullable) "null" else "throw NoSuchElementException(\"$propertyName not found\")")
+                        )
+                        .endControlFlow()
+                        .build()
+                )
+                .let {
+                    if (property.isMutable || annotation.mutable) {
+                        it.setter(
+                            FunSpec.setterBuilder()
+                                .addParameter("value", property.type.toTypeName())
+                                .addStatement("attributes[%S] = value", attributeName)
+                                .build()
+                        )
+                    } else it
+                }
                 .build()
         }.asIterable()
 
