@@ -345,37 +345,39 @@ class ResourceSchemaProcessor(
                                 builder.addAnnotation(AnnotationSpec.builder(Suppress::class).addMember("%S", "UNCHECKED_CAST").build())
                             } else builder
                         }
-                        .addCode(
-                            CodeBlock.builder()
-                                .addNamed(
-                                    "return if (%property:L.containsKey(%relationName:S) && (%property:L[%relationName:S] == null || %property:L[%relationName:S] is %relationTypeErased:T)) %property:L[%relationName:S] as %relationType:T else ".let {
-                                        var s = it;
-                                        if (!property.isAbstract()) {
-                                            s += "%defaultValue:L as %relationType:T"
-                                        } else {
-                                            if (isToMany && !realType.isNullable) {
-                                                s += "mutableListOf<%relationTypeInner:T>().%defaultValue:M()"
-                                            } else {
-                                                s += "%defaultValue:L"
-                                            }
-                                        }
-                                        s
-                                    },
-                                    mapOf(
-                                        "property" to "relationships",
-                                        "relationName" to relationName,
-                                        "relationTypeErased" to if (realType is ParameterizedTypeName) realType.copy(typeArguments = listOf(STAR)) else realType,
-                                        "relationType" to realType,
-                                        "defaultValue" to if (!property.isAbstract()) "super.$propertyName" else (if (isToMany) {
-                                            if (realType.isNullable) "null" else MemberName("it.maicol07.spraypaintkt.extensions.", "trackChanges")
-                                        } else {
-                                            if (realType.isNullable) "null" else ("throw NoSuchElementException(\"$propertyName not found\")")
-                                        }),
-                                        "relationTypeInner" to resourceTypeName
-                                    ),
-                                )
-                                .build()
+                        .addCode("return ")
+                        .beginControlFlow(
+                            "if (relationships.containsKey(%S) && (${
+                                if (realType.isNullable) "relationships[%S] == null || "
+                                else ""
+                            }relationships[%S] is %T))",
+                            *listOfNotNull(
+                                relationName,
+                                if (realType.isNullable) relationName else null,
+                                relationName,
+                                if (realType is ParameterizedTypeName) realType.copy(
+                                    typeArguments = listOf(
+                                        STAR
+                                    )
+                                ) else realType
+                            ).toTypedArray(),
                         )
+                        .addStatement("relationships[%S] as %T", relationName, realType)
+                        .nextControlFlow("else")
+                        .addStatement(
+                            if (!property.isAbstract()) {
+                                if (isToMany) "(super.$propertyName as %T).%M()"
+                                else "super.$propertyName"
+                            }
+                            else (if (isToMany) {
+                                if (realType.isNullable) "null" else "mutableListOf<%T>().%M()"
+                            } else {
+                                if (realType.isNullable) "null" else ("throw NoSuchElementException(\"$propertyName not found\")")
+                            }),
+                            if (!property.isAbstract() && isToMany) realType else resourceTypeName,
+                            MemberName("it.maicol07.spraypaintkt.extensions.", "trackChanges")
+                        )
+                        .endControlFlow()
                         .build()
                 )
                 .let {
@@ -383,11 +385,7 @@ class ResourceSchemaProcessor(
                         it.setter(
                             FunSpec.setterBuilder()
                                 .addParameter("value", realType)
-                                .addCode(
-                                    CodeBlock.builder()
-                                        .addStatement("relationships[%S] = value", relationName)
-                                        .build()
-                                )
+                                .addStatement("relationships[%S] = value", relationName)
                                 .build()
                         )
                     } else it
