@@ -175,7 +175,7 @@ class ResourceSchemaProcessor(
                 .initializer(
                     "%T", (try {
                         resourceSchemaAnnotation.config
-                    } catch (e: NoSuchElementException) {
+                    } catch (_: NoSuchElementException) {
                         JsonApiConfig::class
                     }).let {
                         if (it.qualifiedName == JsonApiConfig::class.qualifiedName || !it.isSubclassOf(JsonApiConfig::class))
@@ -285,12 +285,6 @@ class ResourceSchemaProcessor(
                 .build()
         }.asIterable()
 
-    private data class RelationshipPropertyData(
-        var delegateFormat: String,
-        var delegateParams: List<Any?>,
-        var propertyType: TypeName
-    )
-
     @OptIn(KspExperimental::class)
     private fun generateRelationships(
         resolver: Resolver,
@@ -329,12 +323,6 @@ class ResourceSchemaProcessor(
             } else {
                 resourceTypeName
             }
-
-//            val schemaType = if (isToMany) {
-//                ClassName("kotlin.collections", "MutableList").parameterizedBy(relationResourceSchema.toTypeName()).copy(nullable = relationType.isMarkedNullable)
-//            } else {
-//                relationType.toTypeName()
-//            }
 
             PropertySpec.builder(propertyName, realType)
                 .mutable(annotation.mutable)
