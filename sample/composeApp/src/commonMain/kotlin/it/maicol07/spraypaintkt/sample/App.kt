@@ -45,8 +45,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import it.maicol07.spraypaintkt.sample.data.models.Book
 import it.maicol07.spraypaintkt.sample.theme.AppTheme
-import it.maicol07.spraypaintkt_test.models.Book
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
