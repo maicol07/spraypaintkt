@@ -6,7 +6,7 @@ import it.maicol07.spraypaintkt_annotation.Relation
 
 interface BaseBookSchema {
     @Attr val title: String
-    @Attr var publisher_id: Int
+    @Attr var publisherId: Int
 
     @Relation val reviews: MutableList<out ReviewSchema>
 }

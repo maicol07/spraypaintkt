@@ -7,7 +7,7 @@ import it.maicol07.spraypaintkt_annotation.ResourceSchema
 @ResourceSchema(resourceType = "Book", endpoint = "Books")
 abstract class BookSchema {
     @Attr abstract val title: String
-    @Attr abstract var publisher_id: Int
+    @Attr abstract val publisherId: Int
 
     @Relation open val reviews: MutableList<out ReviewSchema> = mutableListOf(Review())
     @Relation abstract val publisher: PublisherSchema

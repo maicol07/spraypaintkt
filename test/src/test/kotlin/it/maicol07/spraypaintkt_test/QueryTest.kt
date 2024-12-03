@@ -70,14 +70,14 @@ class QueryTest : BaseTest() {
 
         val reader = review.reader
         assertEquals("Person", reader.type)
-        assertEquals(review.reader_id.toString(), reader.id)
+        assertEquals(review.readerId.toString(), reader.id)
 
         val book = review.book
-        assertEquals(review.book_id, book.id)
+        assertEquals(review.bookId, book.id)
 
         val publisher = book.publisher
         assertEquals("Publisher", publisher.type)
-        assertEquals(book.publisher_id.toString(), publisher.id)
+        assertEquals(book.publisherId.toString(), publisher.id)
 
         val publishedBooks = review.book.publisher.books
         assertIs<List<Book>>(publishedBooks)

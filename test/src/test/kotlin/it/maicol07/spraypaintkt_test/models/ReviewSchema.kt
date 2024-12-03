@@ -9,8 +9,8 @@ import it.maicol07.spraypaintkt_annotation.ResourceSchema
 interface ReviewSchema {
     @Attr var review: String
     @Attr var created: String
-    @Attr var book_id: String
-    @Attr var reader_id: Int
+    @Attr var bookId: String
+    @Attr var readerId: Int
 
     @Relation val book: BookSchema
     @Relation val reader: PersonSchema

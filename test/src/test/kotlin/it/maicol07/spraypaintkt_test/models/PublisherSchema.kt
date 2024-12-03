@@ -9,7 +9,7 @@ import it.maicol07.spraypaintkt_annotation.Relation
 interface PublisherSchema: Resource {
     @Attr val name: String
     @Attr val stock: Int
-    @Attr val custom_field: String
+    @Attr val customField: String
 
     @Relation val books: MutableList<out BookSchema>
 }

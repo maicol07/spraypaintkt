@@ -8,7 +8,7 @@ import it.maicol07.spraypaintkt_annotation.ResourceSchema
 interface PublisherSchema {
     @Attr val name: String
     @Attr val stock: Int
-    @Attr val custom_field: String
+    @Attr val customField: String
 
     @Relation val books: MutableList<out BookSchema>
 }
