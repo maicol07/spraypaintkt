@@ -218,9 +218,12 @@ abstract class BookSchema {
     @Relation abstract val reviews: List<ReviewSchema>
     @Relation abstract val publisher: PublisherSchema
     @Relation abstract val author: PersonSchema
-    @Relation val reader: PersonSchema? = null
+    @Relation open val reader: PersonSchema? = null
 }
 ```
+
+> [!WARNING]
+> Always set the relation property with a default value to `open` if you're using an abstract class, otherwise a Kotlin inheritance error will be thrown.
 
 > [!TIP]
 > If you want a relationship to be nullable (it can assume the value `null`), you can set the type nullable by adding a `?` after the type.
