@@ -4,15 +4,20 @@ import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.accept
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
+import io.ktor.client.request.url
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
 import it.maicol07.spraypaintkt.interfaces.HttpClientResponse
 
@@ -32,24 +37,17 @@ class KtorHttpClient(
             contentType(VndApiJson)
         }
     },
-    val httpClient: HttpClient = if (engineFactory == null) HttpClient(httpClientOptions) else HttpClient(engineFactory, httpClientOptions)
-): it.maicol07.spraypaintkt.interfaces.HttpClient {
+    private val httpClient: HttpClient = if (engineFactory == null) HttpClient(httpClientOptions) else HttpClient(
+        engineFactory,
+        httpClientOptions
+    )
+) : it.maicol07.spraypaintkt.interfaces.HttpClient {
     companion object {
         val VndApiJson = ContentType("application", "vnd.api+json")
     }
-    override suspend fun get(url: String, parameters: Map<String, String>): HttpClientResponse {
-        val response = httpClient.get(url) {
-            for ((key, value) in parameters) {
-                parameter(key, value)
-            }
-            accept(VndApiJson)
-        }
 
-        val responseBody = response.bodyAsText()
-        return object : HttpClientResponse {
-            override val statusCode: Int = response.status.value
-            override val body: String = responseBody
-        }
+    override suspend fun get(url: String, parameters: Map<String, String>): HttpClientResponse {
+        return sendRequest(HttpMethod.Get, url, parameters)
     }
 
     override suspend fun patch(
@@ -57,20 +55,7 @@ class KtorHttpClient(
         body: String,
         parameters: Map<String, String>
     ): HttpClientResponse {
-        val response = httpClient.patch(url) {
-            for ((key, value) in parameters) {
-                parameter(key, value)
-            }
-            accept(VndApiJson)
-            contentType(VndApiJson)
-            setBody(body)
-        }
-
-        val responseBody = response.bodyAsText()
-        return object : HttpClientResponse {
-            override val statusCode: Int = response.status.value
-            override val body: String = responseBody
-        }
+        return sendRequest(HttpMethod.Patch, url, parameters, body)
     }
 
     override suspend fun post(
@@ -78,20 +63,7 @@ class KtorHttpClient(
         body: String,
         parameters: Map<String, String>
     ): HttpClientResponse {
-        val response = httpClient.post(url) {
-            for ((key, value) in parameters) {
-                parameter(key, value)
-            }
-            accept(VndApiJson)
-            contentType(VndApiJson)
-            setBody(body)
-        }
-
-        val responseBody = response.bodyAsText()
-        return object : HttpClientResponse {
-            override val statusCode: Int = response.status.value
-            override val body: String = responseBody
-        }
+        return sendRequest(HttpMethod.Post, url, parameters, body)
     }
 
     override suspend fun put(
@@ -99,15 +71,14 @@ class KtorHttpClient(
         body: String,
         parameters: Map<String, String>
     ): HttpClientResponse {
-        val response = httpClient.post(url) {
-            for ((key, value) in parameters) {
-                parameter(key, value)
-            }
-            accept(VndApiJson)
-            contentType(VndApiJson)
-            setBody(body)
-        }
+        return sendRequest(HttpMethod.Put, url, parameters, body)
+    }
 
+    override suspend fun delete(url: String, parameters: Map<String, String>): HttpClientResponse {
+        return sendRequest(HttpMethod.Delete, url, parameters)
+    }
+
+    private suspend fun getResponseObject(response: HttpResponse): HttpClientResponse {
         val responseBody = response.bodyAsText()
         return object : HttpClientResponse {
             override val statusCode: Int = response.status.value
@@ -115,18 +86,29 @@ class KtorHttpClient(
         }
     }
 
-    override suspend fun delete(url: String, parameters: Map<String, String>): HttpClientResponse {
-        val response = httpClient.delete(url) {
-            parameters.forEach { (key, value) ->
+    private suspend fun sendRequest(method: HttpMethod, url: String, parameters: Map<String, String>, body: String? = null): HttpClientResponse {
+        val requestBuilder = HttpRequestBuilder().apply {
+            url(url)
+
+            for ((key, value) in parameters) {
                 parameter(key, value)
             }
+
             accept(VndApiJson)
+
+            if (body != null) {
+                contentType(VndApiJson)
+                setBody(body)
+            }
         }
 
-        val responseBody = response.bodyAsText()
-        return object : HttpClientResponse {
-            override val statusCode: Int = response.status.value
-            override val body: String = responseBody
+        return when (method) {
+            HttpMethod.Get -> getResponseObject(httpClient.get(requestBuilder))
+            HttpMethod.Patch -> getResponseObject(httpClient.patch(requestBuilder))
+            HttpMethod.Post -> getResponseObject(httpClient.post(requestBuilder))
+            HttpMethod.Put -> getResponseObject(httpClient.put(requestBuilder))
+            HttpMethod.Delete -> getResponseObject(httpClient.delete(requestBuilder))
+            else -> throw IllegalArgumentException("Unsupported HTTP method: $method")
         }
     }
 }
