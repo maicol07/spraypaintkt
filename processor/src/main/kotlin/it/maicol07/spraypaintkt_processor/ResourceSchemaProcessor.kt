@@ -267,7 +267,7 @@ class ResourceSchemaProcessor(
 
             PropertySpec.builder(propertyName, it.type.toTypeName())
                 .addModifiers(KModifier.OVERRIDE)
-                .mutable()
+                .mutable(it.isMutable || annotation.mutable)
                 .delegate(delegateFormat, *delegateParams.filterNotNull().toTypedArray())
                 .build()
         }.asIterable()
