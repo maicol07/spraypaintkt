@@ -9,7 +9,7 @@ abstract class BookSchema {
     @Attr abstract val title: String
     @Attr abstract val publisherId: Int
 
-    @Relation open val reviews: MutableList<out ReviewSchema> = mutableListOf(Review())
+    @Relation open val reviews: List<ReviewSchema> = mutableListOf(Review())
     @Relation abstract val publisher: PublisherSchema
     @Relation abstract val author: PersonSchema
     @Relation abstract val reader: PersonSchema
