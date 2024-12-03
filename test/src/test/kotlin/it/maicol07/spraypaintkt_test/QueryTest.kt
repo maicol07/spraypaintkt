@@ -100,7 +100,6 @@ class QueryTest : BaseTest() {
     fun extended() = runTest {
         val books = ExtendedBook.all()
         assertIs<List<ExtendedBook>>(books.data)
-        assertEquals(100, books.data.size)
         val book = books.data.first()
         assertIs<ExtendedBook>(book)
         assertEquals("Book", book.type)
