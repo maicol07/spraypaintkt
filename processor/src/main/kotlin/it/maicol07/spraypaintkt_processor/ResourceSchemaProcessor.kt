@@ -73,7 +73,7 @@ class ResourceSchemaProcessor(
                 logger.info("Found annotated class: ${resourceSchema.qualifiedName?.asString()}")
 
                 if (!resourceSchema.simpleName.asString().endsWith("Schema")) {
-                    throw IllegalStateException("Class ${resourceSchema.qualifiedName?.asString()} does not end with 'Schema'")
+                    throw IllegalStateException("${resourceSchema.qualifiedName?.asString()} class does not end with 'Schema'")
                 }
 
                 if (!resourceSchema.isAbstract()) {
@@ -213,7 +213,11 @@ class ResourceSchemaProcessor(
         "id" to CodeBlock.of("%L", "null"),
         "isPersisted" to CodeBlock.of("%L", false),
         "attributes" to CodeBlock.of("%L.%M()", "mutableMapOf<String, Any?>()", MemberName("it.maicol07.spraypaintkt.extensions.", "trackChanges")),
-        "relationships" to CodeBlock.of("%L.%M()", "mutableMapOf<String, Any?>()", MemberName("it.maicol07.spraypaintkt.extensions.", "trackChanges")),
+        "relationships" to CodeBlock.of(
+            "%L.%M()",
+            "mutableMapOf<String, Any?>()",
+            MemberName("it.maicol07.spraypaintkt.extensions.", "trackChanges")
+        ),
         "meta" to CodeBlock.of("%L", "mutableMapOf()"),
         "links" to CodeBlock.of("%L", "mutableMapOf()"),
         "type" to CodeBlock.of("%L", "lazy { companion.resourceType }")
@@ -226,7 +230,8 @@ class ResourceSchemaProcessor(
             var returnType = property.returnType.asTypeName()
             // Workaround for https://github.com/square/kotlinpoet/issues/279
             if (property.returnType.toString().startsWith("kotlin.collections.MutableMap")) {
-                returnType = ClassName("kotlin.collections", "MutableMap").parameterizedBy(property.returnType.arguments.map { it.type!!.asTypeName() })
+                returnType =
+                    ClassName("kotlin.collections", "MutableMap").parameterizedBy(property.returnType.arguments.map { it.type!!.asTypeName() })
             }
             PropertySpec.builder(property.name, returnType)
                 .addModifiers(KModifier.OVERRIDE)
@@ -248,6 +253,7 @@ class ResourceSchemaProcessor(
             val annotation = it.getAnnotationsByType(Attr::class).first()
             val propertyName = it.simpleName.asString()
             val attributeName = annotation.name.ifEmpty { if (annotation.autoTransform) propertyName.toSnakeCase() else propertyName }
+
             logger.info("Generating attribute $propertyName of type ${it.type}")
 
             val delegate = if (it.type.toTypeName().isNullable) "nullableAttribute" else "attribute"
