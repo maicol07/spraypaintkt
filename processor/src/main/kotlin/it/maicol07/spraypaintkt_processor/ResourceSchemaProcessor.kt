@@ -76,6 +76,10 @@ class ResourceSchemaProcessor(
                     throw IllegalStateException("Class ${resourceSchema.qualifiedName?.asString()} does not end with 'Schema'")
                 }
 
+                if (!resourceSchema.isAbstract()) {
+                    throw IllegalStateException("${resourceSchema.qualifiedName?.asString()} class must be an interface or abstract class")
+                }
+
                 val defaultConfig = getDefaultConfig(resolver)
                 defaultConfig?.let { fileDependencies.add(it.containingFile!!) }
                 fileDependencies.add(resourceSchema.containingFile!!)
