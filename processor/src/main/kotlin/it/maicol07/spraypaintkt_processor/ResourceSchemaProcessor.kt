@@ -312,7 +312,7 @@ class ResourceSchemaProcessor(
             logger.info("Generating relationship $propertyName of type $resourceSchema")
 
             // Check if the type is a ResourceSchema
-            val relationResourceSchemaResolved = resolver.getKotlinClassByName(relationResourceSchema.declaration.qualifiedName!!.asString())
+            val relationResourceSchemaResolved = resolver.getKotlinClassByName(relationResourceSchema.declaration.qualifiedName?.asString() ?: throw IllegalStateException("ResourceSchema for relation $propertyName of schema ${resourceSchema.qualifiedName!!.asString()} not found"))
             if (relationResourceSchemaResolved!!.annotations.none { it.annotationType.resolve().declaration.qualifiedName?.asString() == ResourceSchema::class.qualifiedName })
                 throw IllegalStateException("$propertyName relationship type $relationResourceSchema of schema ${resourceSchema.qualifiedName!!.asString()} is not a ResourceSchema")
 
@@ -321,7 +321,7 @@ class ResourceSchemaProcessor(
             val realType = if (isToMany) {
                 ClassName("kotlin.collections", if (annotation.mutable) "MutableList" else "List").parameterizedBy(resourceTypeName).copy(nullable = relationType.isMarkedNullable)
             } else {
-                resourceTypeName
+                resourceTypeName.copy(nullable = relationType.isMarkedNullable)
             }
 
             PropertySpec.builder(propertyName, realType)
