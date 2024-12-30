@@ -7,16 +7,16 @@ kotlin = "2.0.21"
 kotlinpoetKsp = "2.0.0"
 kotlinxCoroutinesTest = "1.9.0"
 kotlinxSerializationJson = "1.7.3"
-ktor = "3.0.1"
-logbackClassic = "1.5.12"
+ktor = "3.0.3"
+logbackClassic = "1.5.15"
 mavenPublish = "0.29.0"
 dokka = "1.9.20"
 ksp = "2.0.21-1.0.28"
 
 # Sample
-compose = "1.7.1"
+compose = "1.7.3"
 androidx-activityCompose = "1.9.3"
-androidx-uiTest = "1.7.5"
+androidx-uiTest = "1.7.6"
 
 [libraries]
 auto-service-annotations = { module = "com.google.auto.service:auto-service-annotations", version.ref = "autoServiceAnnotations" }
