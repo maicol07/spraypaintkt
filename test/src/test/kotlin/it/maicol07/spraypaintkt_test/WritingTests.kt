@@ -10,11 +10,10 @@ import it.maicol07.spraypaintkt_test.models.Review
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class WritingTests : BaseTest() {
-    @Test
+    @Test(timeout = 100_000)
     fun writing() = runTest {
         val lastPerson = Person.order("id", SortDirection.DESC).first().data
         var person = Person()

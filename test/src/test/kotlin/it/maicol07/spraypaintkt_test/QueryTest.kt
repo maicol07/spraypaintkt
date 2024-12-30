@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 class QueryTest : BaseTest() {
-    @Test
+    @Test(timeout = 100_000)
     fun all() = runTest {
         val reviews = Review.all()
         assertIs<List<Review>>(reviews.data)
@@ -19,7 +19,7 @@ class QueryTest : BaseTest() {
         assertEquals("Review", review.type)
     }
 
-    @Test
+    @Test(timeout = 100_000)
     fun find() = runTest {
         val response = Review.first()
         val firstReview = response.data
@@ -33,13 +33,13 @@ class QueryTest : BaseTest() {
         assertEquals(firstReview.review, resource.review)
     }
 
-    @Test
+    @Test(timeout = 100_000)
     fun first() = runTest {
         val review = Review.first()
         assertEquals("Review", review.data.type)
     }
 
-    @Test
+    @Test(timeout = 100_000)
     fun filter() = runTest {
         val discussion = Review.where("review", "review 10").first()
         assertIs<Review>(discussion.data)
@@ -47,7 +47,7 @@ class QueryTest : BaseTest() {
         assertEquals("review 10", discussion.data.review)
     }
 
-    @Test
+    @Test(timeout = 100_000)
     fun sort() = runTest {
         // We can't sort by created because they're all the same
         val reviews = Review.order("review", SortDirection.DESC).first()
@@ -58,7 +58,7 @@ class QueryTest : BaseTest() {
         assertEquals("review 99", review.review)
     }
 
-    @Test
+    @Test(timeout = 100_000)
     fun include() = runTest {
         val firstReview = Review.first().data
         val reviews = Review.includes("book", "reader", "book.publisher", "book.publisher.books").find(firstReview.id!!)
@@ -86,7 +86,7 @@ class QueryTest : BaseTest() {
         assertEquals(book.id, publishedBooks[0].id)
     }
 
-    @Test
+    @Test(timeout = 100_000)
     fun page() = runTest {
         val reviews = Review.offset(1).limit(3).all()
         assertIs<List<Review>>(reviews.data)
@@ -96,7 +96,7 @@ class QueryTest : BaseTest() {
         assertEquals("Review", review.type)
     }
 
-    @Test
+    @Test(timeout = 100_000)
     fun extended() = runTest {
         val books = ExtendedBook.all()
         assertIs<List<ExtendedBook>>(books.data)
@@ -105,7 +105,7 @@ class QueryTest : BaseTest() {
         assertEquals("Book", book.type)
     }
 
-//    @Test
+//    @Test(timeout = 100_000)
 //    fun fields() = runTest {
 //        val discussions = client.select("discussions", "title", "slug").first<Review>()
 //

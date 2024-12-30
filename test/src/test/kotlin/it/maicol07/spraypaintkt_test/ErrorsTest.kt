@@ -11,7 +11,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 
 class ErrorsTest : BaseTest() {
-    @Test
+    @Test(timeout = 100_000)
     fun `Test error handling`() = runTest {
         assertFails {
             Publisher.find(id = "nonexistent")
