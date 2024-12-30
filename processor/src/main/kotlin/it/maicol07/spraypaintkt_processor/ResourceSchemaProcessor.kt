@@ -6,14 +6,13 @@ import com.google.devtools.ksp.getKotlinClassByName
 import com.google.devtools.ksp.isAbstract
 import com.google.devtools.ksp.isAnnotationPresent
 import com.google.devtools.ksp.processing.CodeGenerator
-import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.google.devtools.ksp.symbol.KSFile
+import com.google.devtools.ksp.validate
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
@@ -31,6 +30,8 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
+import com.squareup.kotlinpoet.ksp.addOriginatingKSFile
+import com.squareup.kotlinpoet.ksp.originatingKSFiles
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
@@ -58,56 +59,70 @@ class ResourceSchemaProcessor(
     private val logger: KSPLogger,
     private val codeGenerator: CodeGenerator,
 ) : SymbolProcessor {
-    private val filesToWrite = mutableListOf<FileSpec>()
-    private val fileDependencies = mutableSetOf<KSFile>()
-
     override fun process(resolver: Resolver): List<KSAnnotated> {
         // Create function to initialize ResourceFactory
-        val fileBuilder = FileSpec.builder("it.maicol07.spraypaintkt", "ResourceFactoryInitializer")
         val registerResourcesFun = FunSpec.builder("registerResources")
             .receiver(ResourceRegistry::class)
 
-        resolver.getSymbolsWithAnnotation(ResourceSchema::class.qualifiedName!!)
+        val symbols = resolver.getSymbolsWithAnnotation(ResourceSchema::class.qualifiedName!!)
             .filterIsInstance(KSClassDeclaration::class.java)
-            .forEach { resourceSchema ->
-                logger.info("Found annotated class: ${resourceSchema.qualifiedName?.asString()}")
+        if (!symbols.iterator().hasNext()) return emptyList()
 
-                if (!resourceSchema.simpleName.asString().endsWith("Schema")) {
-                    throw IllegalStateException("${resourceSchema.qualifiedName?.asString()} class does not end with 'Schema'")
-                }
+        for (resourceSchema in symbols) {
+            logger.info("Found annotated class: ${resourceSchema.qualifiedName?.asString()}")
 
-                if (!resourceSchema.isAbstract()) {
-                    throw IllegalStateException("${resourceSchema.qualifiedName?.asString()} class must be an interface or abstract class")
-                }
-
-                val defaultConfig = getDefaultConfig(resolver)
-                defaultConfig?.let { fileDependencies.add(it.containingFile!!) }
-                fileDependencies.add(resourceSchema.containingFile!!)
-
-                val resourceSimpleName = resourceSchema.simpleName.asString().removeSuffix("Schema")
-                val resourceClassName = ClassName.bestGuess(resourceSchema.qualifiedName!!.asString().removeSuffix("Schema"))
-                val resourceClass = generateResourceClass(resolver, resourceSchema, resourceSimpleName, resourceClassName, defaultConfig)
-
-                val resourceFile =
-                    FileSpec.builder(resourceSchema.packageName.asString(), resourceClass.name!!)
-                        .addType(resourceClass)
-                        .build()
-                filesToWrite.add(resourceFile)
-
-
-                registerResourcesFun.addStatement(
-                    "registerResource<%T>(%T.Companion)",
-                    resourceClassName,
-                    resourceClassName
-                )
+            if (!resourceSchema.simpleName.asString().endsWith("Schema")) {
+                logger.error("ResourceSchema class does not end with 'Schema'", resourceSchema)
+                continue
             }
 
-        val file = fileBuilder
+            if (!resourceSchema.isAbstract()) {
+                logger.error(
+                    "ResourceSchema class must be an interface or abstract class",
+                    resourceSchema
+                )
+                continue
+            }
+
+            val defaultConfig = getDefaultConfig(resolver)
+
+            val resourceSimpleName = resourceSchema.simpleName.asString().removeSuffix("Schema")
+            val resourceClassName = ClassName.bestGuess(
+                resourceSchema.qualifiedName!!.asString().removeSuffix("Schema")
+            )
+            val resourceClass = generateResourceClass(
+                resolver,
+                resourceSchema,
+                resourceSimpleName,
+                resourceClassName,
+                defaultConfig
+            ) ?: continue
+
+            val resourceFile =
+                FileSpec.builder(resourceSchema.packageName.asString(), resourceClass.name!!)
+                    .addType(resourceClass)
+                    .build()
+            logger.info("Writing file ${resourceFile.name}")
+            resourceFile.writeTo(
+                codeGenerator,
+                false,
+                listOfNotNull(defaultConfig?.containingFile, *resourceFile.originatingKSFiles().toTypedArray())
+            )
+
+            registerResourcesFun.addStatement(
+                "registerResource<%T>(%T.Companion)",
+                resourceClassName,
+                resourceClassName
+            )
+        }
+
+        val file = FileSpec.builder("it.maicol07.spraypaintkt", "ResourceFactoryInitializer")
             .addFunction(registerResourcesFun.build())
             .build()
+        file.writeTo(codeGenerator, false, symbols.toList().mapNotNull { it.containingFile })
 
-        filesToWrite.add(file)
-        return emptyList()
+        val unableToProcess = symbols.filterNot { it.validate() }.toList()
+        return unableToProcess
     }
 
     @OptIn(KspExperimental::class)
@@ -117,29 +132,44 @@ class ResourceSchemaProcessor(
         resourceSimpleName: String,
         resourceClassName: ClassName,
         defaultConfig: KSClassDeclaration?
-    ): TypeSpec {
-        val resourceSchemaAnnotation = resourceSchema.getAnnotationsByType(ResourceSchema::class).first()
+    ): TypeSpec? {
+        val resourceSchemaAnnotation =
+            resourceSchema.getAnnotationsByType(ResourceSchema::class).first()
 
         logger.info("Generating resource class: $resourceSimpleName")
 
         return TypeSpec.classBuilder(resourceSimpleName)
+            .addOriginatingKSFile(resourceSchema.containingFile!!)
             .addSuperinterface(Resource::class)
             .let {
                 when (resourceSchema.classKind) {
                     ClassKind.INTERFACE -> it.addSuperinterface(resourceSchema.toClassName())
                     ClassKind.CLASS -> it.superclass(resourceSchema.toClassName())
-                    else -> throw IllegalStateException("ResourceSchema class must be an interface or a class")
+                    else -> throw IllegalArgumentException("ResourceSchema must be an interface or an abstract class") // Should never happen, since we already checked this before
                 }
             }
-            .addType(generateResourceCompanionObject(resourceSchema, resourceClassName, resourceSchemaAnnotation, defaultConfig))
+            .addType(
+                generateResourceCompanionObject(
+                    resourceSchema,
+                    resourceClassName,
+                    resourceSchemaAnnotation,
+                    defaultConfig
+                )
+            )
             .addProperty(
-                PropertySpec.builder("companion", Resource.CompanionObj::class.asTypeName().parameterizedBy(resourceClassName))
+                PropertySpec.builder(
+                    "companion",
+                    Resource.CompanionObj::class.asTypeName().parameterizedBy(resourceClassName)
+                )
                     .addModifiers(KModifier.OVERRIDE)
                     .initializer("Companion")
                     .build()
             )
             .addProperties(generateBaseResourceProperties())
-            .addAnnotation(AnnotationSpec.builder(Serializable::class.asClassName()).addMember("%T::class", ResourceSerializer::class).build())
+            .addAnnotation(
+                AnnotationSpec.builder(Serializable::class.asClassName())
+                    .addMember("%T.Companion.Serializer::class", resourceClassName).build()
+            )
             .addProperties(generateAttributes(resourceSchema))
             .addProperties(generateRelationships(resolver, resourceSchema))
             .build()
@@ -154,6 +184,14 @@ class ResourceSchemaProcessor(
         .addSuperinterface(
             Resource.CompanionObj::class.asTypeName()
                 .parameterizedBy(resourceClassName)
+        )
+        .addType(
+            TypeSpec.objectBuilder("Serializer")
+                .superclass(
+                    ResourceSerializer::class.asTypeName()
+                        .parameterizedBy(resourceClassName)
+                )
+                .build()
         )
         .addProperty(
             PropertySpec.builder("resourceType", String::class)
@@ -178,9 +216,12 @@ class ResourceSchemaProcessor(
                     } catch (_: NoSuchElementException) {
                         JsonApiConfig::class
                     }).let {
-                        if (it.qualifiedName == JsonApiConfig::class.qualifiedName || !it.isSubclassOf(JsonApiConfig::class))
+                        if (it.qualifiedName == JsonApiConfig::class.qualifiedName || !it.isSubclassOf(
+                                JsonApiConfig::class
+                            )
+                        )
                             defaultConfig?.asType(emptyList())?.toTypeName()
-                                ?: throw IllegalStateException("No default JsonApiConfig found. Please provide a config in the ResourceSchema annotation or annotate a JsonApiConfig object with @DefaultInstance")
+                                ?: logger.error("No default JsonApiConfig found. Please provide a config in the ResourceSchema annotation or annotate a JsonApiConfig object with @DefaultInstance")
                         else it
                     })
                 .build()
@@ -192,7 +233,10 @@ class ResourceSchemaProcessor(
                 .build()
         )
         .addProperty(
-            PropertySpec.builder("schema", KClass::class.asTypeName().parameterizedBy(resourceSchema.toClassName()))
+            PropertySpec.builder(
+                "schema",
+                KClass::class.asTypeName().parameterizedBy(resourceSchema.toClassName())
+            )
                 .addModifiers(KModifier.OVERRIDE)
                 .initializer("%T::class", resourceSchema.toClassName())
                 .build()
@@ -212,7 +256,11 @@ class ResourceSchemaProcessor(
     private val BaseResourceProperties = mapOf(
         "id" to CodeBlock.of("%L", "null"),
         "isPersisted" to CodeBlock.of("%L", false),
-        "attributes" to CodeBlock.of("%L.%M()", "mutableMapOf<String, Any?>()", MemberName("it.maicol07.spraypaintkt.extensions.", "trackChanges")),
+        "attributes" to CodeBlock.of(
+            "%L.%M()",
+            "mutableMapOf<String, Any?>()",
+            MemberName("it.maicol07.spraypaintkt.extensions.", "trackChanges")
+        ),
         "relationships" to CodeBlock.of(
             "%L.%M()",
             "mutableMapOf<String, Any?>()",
@@ -224,66 +272,76 @@ class ResourceSchemaProcessor(
     )
     private val BaseResourcePropertiesWithDelegate = listOf("type")
 
-    private fun generateBaseResourceProperties(): Iterable<PropertySpec> = Resource::class.memberProperties
-        .filter { it.name in BaseResourceProperties.keys }
-        .map { property ->
-            var returnType = property.returnType.asTypeName()
-            // Workaround for https://github.com/square/kotlinpoet/issues/279
-            if (property.returnType.toString().startsWith("kotlin.collections.MutableMap")) {
-                returnType =
-                    ClassName("kotlin.collections", "MutableMap").parameterizedBy(property.returnType.arguments.map { it.type!!.asTypeName() })
-            }
-            PropertySpec.builder(property.name, returnType)
-                .addModifiers(KModifier.OVERRIDE)
-                .mutable(property is KMutableProperty<*>)
-                .let {
-                    if (property.name in BaseResourcePropertiesWithDelegate) {
-                        it.delegate(BaseResourceProperties[property.name]!!)
-                    } else {
-                        it.initializer(BaseResourceProperties[property.name]!!)
-                    }
+    private fun generateBaseResourceProperties(): Iterable<PropertySpec> =
+        Resource::class.memberProperties
+            .filter { it.name in BaseResourceProperties.keys }
+            .map { property ->
+                var returnType = property.returnType.asTypeName()
+                // Workaround for https://github.com/square/kotlinpoet/issues/279
+                if (property.returnType.toString().startsWith("kotlin.collections.MutableMap")) {
+                    returnType =
+                        ClassName(
+                            "kotlin.collections",
+                            "MutableMap"
+                        ).parameterizedBy(property.returnType.arguments.map { it.type!!.asTypeName() })
                 }
-                .build()
-        }.asIterable()
+                PropertySpec.builder(property.name, returnType)
+                    .addModifiers(KModifier.OVERRIDE)
+                    .mutable(property is KMutableProperty<*>)
+                    .let {
+                        if (property.name in BaseResourcePropertiesWithDelegate) {
+                            it.delegate(BaseResourceProperties[property.name]!!)
+                        } else {
+                            it.initializer(BaseResourceProperties[property.name]!!)
+                        }
+                    }
+                    .build()
+            }.asIterable()
 
     @OptIn(KspExperimental::class)
-    fun generateAttributes(resourceSchema: KSClassDeclaration): Iterable<PropertySpec> = resourceSchema.getAllProperties()
-        .filter { it.isAnnotationPresent(Attr::class) }
-        .map { property ->
-            val annotation = property.getAnnotationsByType(Attr::class).first()
-            val propertyName = property.simpleName.asString()
-            val attributeName = annotation.name.ifEmpty { if (annotation.autoTransform) propertyName.toSnakeCase() else propertyName }
+    fun generateAttributes(resourceSchema: KSClassDeclaration): Iterable<PropertySpec> =
+        resourceSchema.getAllProperties()
+            .filter { it.isAnnotationPresent(Attr::class) }
+            .map { property ->
+                val annotation = property.getAnnotationsByType(Attr::class).first()
+                val propertyName = property.simpleName.asString()
+                val attributeName =
+                    annotation.name.ifEmpty { if (annotation.autoTransform) propertyName.toSnakeCase() else propertyName }
 
-            logger.info("Generating attribute $propertyName of type ${property.type}")
+                logger.info("Generating attribute $propertyName of type ${property.type}")
 
-            PropertySpec.builder(propertyName, property.type.toTypeName())
-                .addModifiers(KModifier.OVERRIDE)
-                .mutable(property.isMutable || annotation.mutable)
-                .getter(
-                    FunSpec.getterBuilder()
-                        .addCode("return ")
-                        .beginControlFlow("if (attributes.containsKey(%S))", attributeName)
-                        .addStatement("attributes[%S] as %T", attributeName, property.type.toTypeName())
-                        .nextControlFlow("else")
-                        .addStatement(
-                            if (!property.isAbstract()) "super.$propertyName"
-                            else (if (property.type.resolve().isMarkedNullable) "null" else "throw NoSuchElementException(\"$propertyName not found\")")
-                        )
-                        .endControlFlow()
-                        .build()
-                )
-                .let {
-                    if (property.isMutable || annotation.mutable) {
-                        it.setter(
-                            FunSpec.setterBuilder()
-                                .addParameter("value", property.type.toTypeName())
-                                .addStatement("attributes[%S] = value", attributeName)
-                                .build()
-                        )
-                    } else it
-                }
-                .build()
-        }.asIterable()
+                PropertySpec.builder(propertyName, property.type.toTypeName())
+                    .addModifiers(KModifier.OVERRIDE)
+                    .mutable(property.isMutable || annotation.mutable)
+                    .getter(
+                        FunSpec.getterBuilder()
+                            .addCode("return ")
+                            .beginControlFlow("if (attributes.containsKey(%S))", attributeName)
+                            .addStatement(
+                                "attributes[%S] as %T",
+                                attributeName,
+                                property.type.toTypeName()
+                            )
+                            .nextControlFlow("else")
+                            .addStatement(
+                                if (!property.isAbstract()) "super.$propertyName"
+                                else (if (property.type.resolve().isMarkedNullable) "null" else "throw NoSuchElementException(\"$propertyName not found\")")
+                            )
+                            .endControlFlow()
+                            .build()
+                    )
+                    .let {
+                        if (property.isMutable || annotation.mutable) {
+                            it.setter(
+                                FunSpec.setterBuilder()
+                                    .addParameter("value", property.type.toTypeName())
+                                    .addStatement("attributes[%S] = value", attributeName)
+                                    .build()
+                            )
+                        } else it
+                    }
+                    .build()
+            }.asIterable()
 
     @OptIn(KspExperimental::class)
     private fun generateRelationships(
@@ -294,32 +352,53 @@ class ResourceSchemaProcessor(
         .map { property ->
             val annotation = property.getAnnotationsByType(Relation::class).first()
             val propertyName = property.simpleName.asString()
-            val relationName = annotation.name.ifEmpty { if (annotation.autoTransform) propertyName.toSnakeCase() else propertyName }
+            val relationName =
+                annotation.name.ifEmpty { if (annotation.autoTransform) propertyName.toSnakeCase() else propertyName }
             logger.info("Generating attribute $propertyName of type ${property.type}")
 
             val relationType = property.type.resolve()
             val isToMany =
-                relationType.declaration.qualifiedName?.asString() in listOf("kotlin.collections.List", "kotlin.collections.MutableList") && relationType.arguments.isNotEmpty()
+                relationType.declaration.qualifiedName?.asString() in listOf(
+                    "kotlin.collections.List",
+                    "kotlin.collections.MutableList"
+                ) && relationType.arguments.isNotEmpty()
             val relationResourceSchema = if (isToMany) {
                 val typeArgument = relationType.arguments.first()
                 typeArgument.type!!.resolve()
             } else relationType
 
             if (property.isMutable) {
-                throw IllegalStateException("Relationship $propertyName of type ${resourceSchema.qualifiedName!!.asString()} is a var property. Relationships must be val.")
+                logger.error("Relationship is a var property where a val is expected", property)
+                return@map null
             }
 
             logger.info("Generating relationship $propertyName of type $resourceSchema")
 
             // Check if the type is a ResourceSchema
-            val relationResourceSchemaResolved = resolver.getKotlinClassByName(relationResourceSchema.declaration.qualifiedName?.asString() ?: throw IllegalStateException("ResourceSchema for relation $propertyName of schema ${resourceSchema.qualifiedName!!.asString()} not found"))
-            if (relationResourceSchemaResolved!!.annotations.none { it.annotationType.resolve().declaration.qualifiedName?.asString() == ResourceSchema::class.qualifiedName })
-                throw IllegalStateException("$propertyName relationship type $relationResourceSchema of schema ${resourceSchema.qualifiedName!!.asString()} is not a ResourceSchema")
+            val relationResourceSchemaName = relationResourceSchema.declaration.qualifiedName?.asString()
+            if (relationResourceSchemaName == null) {
+                logger.error("Relation ResourceSchema not found", property)
+                return@map null
+            }
+            val relationResourceSchemaResolved = resolver.getKotlinClassByName(relationResourceSchemaName)
+            if (
+                relationResourceSchemaResolved!!.annotations.none {
+                    it.annotationType.resolve().declaration.qualifiedName?.asString() == ResourceSchema::class.qualifiedName
+                } == true
+            ) {
+                logger.error("Relationship type is not a ResourceSchema", property)
+                return@map null
+            }
 
-            val resourceTypeName = ClassName.bestGuess(relationResourceSchema.declaration.qualifiedName!!.asString().removeSuffix("Schema"))
+            val resourceTypeName = ClassName.bestGuess(
+                relationResourceSchema.declaration.qualifiedName!!.asString().removeSuffix("Schema")
+            )
 
             val realType = if (isToMany) {
-                ClassName("kotlin.collections", if (annotation.mutable) "MutableList" else "List").parameterizedBy(resourceTypeName).copy(nullable = relationType.isMarkedNullable)
+                ClassName(
+                    "kotlin.collections",
+                    if (annotation.mutable) "MutableList" else "List"
+                ).parameterizedBy(resourceTypeName).copy(nullable = relationType.isMarkedNullable)
             } else {
                 resourceTypeName.copy(nullable = relationType.isMarkedNullable)
             }
@@ -330,7 +409,10 @@ class ResourceSchemaProcessor(
                     FunSpec.getterBuilder()
                         .let { builder ->
                             if (isToMany) {
-                                builder.addAnnotation(AnnotationSpec.builder(Suppress::class).addMember("%S", "UNCHECKED_CAST").build())
+                                builder.addAnnotation(
+                                    AnnotationSpec.builder(Suppress::class)
+                                        .addMember("%S", "UNCHECKED_CAST").build()
+                                )
                             } else builder
                         }
                         .addCode("return ")
@@ -356,8 +438,7 @@ class ResourceSchemaProcessor(
                             if (!property.isAbstract()) {
                                 if (isToMany) "(super.$propertyName as %T).%M()"
                                 else "super.$propertyName"
-                            }
-                            else (if (isToMany) {
+                            } else (if (isToMany) {
                                 if (realType.isNullable) "null" else "mutableListOf<%T>().%M()"
                             } else {
                                 if (realType.isNullable) "null" else ("throw NoSuchElementException(\"$propertyName not found\")")
@@ -381,6 +462,7 @@ class ResourceSchemaProcessor(
                 .addModifiers(KModifier.OVERRIDE)
                 .build()
         }
+        .filterNotNull()
         .asIterable()
 
     private fun getDefaultConfig(resolver: Resolver): KSClassDeclaration? =
@@ -429,7 +511,10 @@ class ResourceSchemaProcessor(
                 FunSpec.builder(method.name)
                     .addModifiers(modifiers)
                     .addParameters(params.map {
-                        ParameterSpec.builder(it.name!!, (if (it.isVararg) it.type.arguments.first().type else it.type)!!.asTypeName())
+                        ParameterSpec.builder(
+                            it.name!!,
+                            (if (it.isVararg) it.type.arguments.first().type else it.type)!!.asTypeName()
+                        )
                             .addModifiers(mutableListOf<KModifier>().apply {
                                 if (it.isVararg) add(KModifier.VARARG)
                             })
@@ -442,13 +527,5 @@ class ResourceSchemaProcessor(
                         params.joinToString(", ") { (if (it.isVararg) "*" else "") + it.name!! })
                     .build()
             }
-    }
-
-    override fun finish() {
-        super.finish()
-        for (file in filesToWrite) {
-            logger.info("Writing file ${file.name}")
-            file.writeTo(codeGenerator, Dependencies(true, *fileDependencies.toTypedArray()))
-        }
     }
 }
