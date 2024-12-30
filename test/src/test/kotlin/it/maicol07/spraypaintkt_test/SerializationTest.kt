@@ -13,7 +13,7 @@ import org.junit.Test
 import kotlin.test.assertEquals
 
 class SerializationTest: BaseTest() {
-    @Test
+    @Test(timeout = 100_000)
     fun serializationTest() {
         val book = Book()
         book.title = "book_title37"
@@ -60,7 +60,7 @@ class SerializationTest: BaseTest() {
         println(serializedJson)
     }
 
-    @Test
+    @Test(timeout = 100_000)
     fun deserializationTest() {
         // Initialize model or call the initializer manually
         Book

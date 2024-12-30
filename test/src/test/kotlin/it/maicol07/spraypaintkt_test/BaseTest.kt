@@ -23,7 +23,7 @@ abstract class BaseTest {
                 level = LogLevel.ALL
             }
             install(HttpTimeout) {
-                requestTimeoutMillis = 90000
+                requestTimeoutMillis = 60_000 // 1 minute
             }
         })
     }
