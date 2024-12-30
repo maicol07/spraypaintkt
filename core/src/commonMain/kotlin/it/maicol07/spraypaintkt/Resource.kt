@@ -13,8 +13,9 @@ import kotlin.reflect.KClass
 /**
  * A JSON:API resource.
  */
-@Serializable(with = ResourceSerializer::class)
+@Serializable(with = Resource.Serializer::class)
 interface Resource {
+    private object Serializer : ResourceSerializer<Resource>()
     /**
      * A companion object for the resource.
      *
