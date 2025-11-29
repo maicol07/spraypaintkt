@@ -9,12 +9,6 @@ plugins {
     alias(libs.plugins.mavenPublish)
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
-    }
-}
-
 dependencies {
     api(projects.annotation)
     api(projects.core)
