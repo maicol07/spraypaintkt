@@ -1,5 +1,3 @@
-import com.vanniktech.maven.publish.SonatypeHost
-
 group = "it.maicol07.spraypaintkt"
 version = rootProject.extra.get("libVersion")!!
 
@@ -25,7 +23,7 @@ dependencies {
 }
 
 mavenPublishing {
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    publishToMavenCentral()
 
     signAllPublications()
     coordinates(group.toString(), name, version.toString())
