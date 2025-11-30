@@ -307,6 +307,11 @@ class ResourceSchemaProcessor(
 
                 logger.info("Generating attribute $propertyName of type ${property.type}")
 
+                // Check if property type is enum
+                val propertyType = property.type.resolve()
+                val classDeclaration = resolver.getClassDeclarationByName(propertyType.declaration.qualifiedName!!)
+                val isEnum = classDeclaration?.classKind == ClassKind.ENUM_CLASS
+
                 PropertySpec.builder(propertyName, property.type.toTypeName())
                     .addModifiers(KModifier.OVERRIDE)
                     .mutable(property.isMutable || annotation.mutable)
@@ -315,9 +320,9 @@ class ResourceSchemaProcessor(
                             .addCode("return ")
                             .beginControlFlow("if (attributes.containsKey(%S))", attributeName)
                             .addStatement(
-                                "attributes[%S] as %T",
-                                attributeName,
-                                property.type.toTypeName()
+                                if (isEnum) "%T.valueOf(attributes[%S] as String)" else "attributes[%S] as %T",
+                                if (isEnum) property.type.toTypeName().copy(false) else attributeName,
+                                if (isEnum) attributeName else property.type.toTypeName()
                             )
                             .nextControlFlow("else")
                             .addStatement(

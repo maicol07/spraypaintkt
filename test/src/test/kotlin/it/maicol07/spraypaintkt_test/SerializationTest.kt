@@ -2,12 +2,10 @@ package it.maicol07.spraypaintkt_test
 
 import io.ktor.http.quote
 import it.maicol07.spraypaintkt.Resource
-import it.maicol07.spraypaintkt.ResourceRegistry
-import it.maicol07.spraypaintkt.registerResources
 import it.maicol07.spraypaintkt_test.models.Book
+import it.maicol07.spraypaintkt_test.models.BookGenre
 import it.maicol07.spraypaintkt_test.models.Publisher
 import it.maicol07.spraypaintkt_test.models.Review
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -184,5 +182,57 @@ class SerializationTest: BaseTest() {
         assert(review.review == "review 37")
         assert(review.book.title == "book_title37")
         assert(review.book.publisher.name == "publisher37")
+    }
+
+    @Test(timeout = 100_000)
+    fun enumSerializationTest() {
+        val book = Book()
+        book.title = "Dune"
+        book.genre = BookGenre.SCIENCE_FICTION
+
+        val jsonApiString = book.toJsonApiString()
+        val shouldBe = """
+            {
+              "data": {
+                "type": "Book",
+                "attributes": {
+                  "title": "Dune",
+                  "genre": "SCIENCE_FICTION"
+                },
+                "relationships": {}
+              },
+              "included": []
+            }
+        """.trimIndent()
+        val jsonMinified = Json { prettyPrint = false }
+        val minified = jsonMinified.encodeToString(Json.parseToJsonElement(shouldBe))
+
+        assert(jsonApiString.isNotEmpty())
+        assertEquals(minified, jsonApiString)
+    }
+
+    @Test(timeout = 100_000)
+    fun enumDeserializationTest() {
+        Book // Initialize the resource
+
+        val jsonApiString = """
+            {
+              "data": {
+                "type": "Book",
+                "id": "1",
+                "attributes": {
+                  "title": "The Hobbit",
+                  "publisher_id": 1,
+                  "genre": "FANTASY"
+                },
+                "relationships": {}
+              }
+            }
+        """.trimIndent().quote()
+
+        val book = Json.decodeFromString<Resource>(jsonApiString) as Book
+        assert(book.id == "1")
+        assert(book.title == "The Hobbit")
+        assert(book.genre == BookGenre.FANTASY)
     }
 }
