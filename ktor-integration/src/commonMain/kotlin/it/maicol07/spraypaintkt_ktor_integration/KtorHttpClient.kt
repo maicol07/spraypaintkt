@@ -21,7 +21,6 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
 import it.maicol07.spraypaintkt.interfaces.HttpClientResponse
 
-@Suppress("MissingTestClass")
 /**
  * A Ktor implementation of the [HttpClient] interface.
  *

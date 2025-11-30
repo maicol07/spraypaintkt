@@ -1,11 +1,10 @@
-@file:Suppress("MissingTestClass")
-
 package it.maicol07.spraypaintkt.extensions
 
 /**
  * A mutable list that tracks changes.
  */
-class DirtyList<T>(private val delegate: MutableList<T>, private val callback: (item: T, list: DirtyList<T>) -> Unit = {_, _ ->}) : MutableList<T> by delegate {
+@Suppress("unused")
+class DirtyList<T>(private val delegate: MutableList<T>, private val callback: (item: T, list: DirtyList<T>) -> Unit = { _, _ ->}) : MutableList<T> by delegate {
     private var changes: MutableList<T>? = null
 
     override fun add(element: T): Boolean {
