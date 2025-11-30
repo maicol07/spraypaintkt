@@ -2,6 +2,8 @@ package it.maicol07.spraypaintkt_processor
 
 import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.getAnnotationsByType
+import com.google.devtools.ksp.getClassDeclarationByName
+import com.google.devtools.ksp.getDeclaredFunctions
 import com.google.devtools.ksp.getKotlinClassByName
 import com.google.devtools.ksp.isAbstract
 import com.google.devtools.ksp.isAnnotationPresent
@@ -33,6 +35,7 @@ import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.addOriginatingKSFile
 import com.squareup.kotlinpoet.ksp.originatingKSFiles
 import com.squareup.kotlinpoet.ksp.toClassName
+import com.squareup.kotlinpoet.ksp.toKModifier
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import it.maicol07.spraypaintkt.Resource
@@ -48,18 +51,18 @@ import it.maicol07.spraypaintkt_annotation.ResourceSchema
 import kotlinx.serialization.Serializable
 import net.pearx.kasechange.toSnakeCase
 import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty
-import kotlin.reflect.full.declaredMemberFunctions
-import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.full.isSubclassOf
-import kotlin.reflect.full.memberProperties
 
 /** Processes [ResourceSchema] annotations in order to create 'model' representations of annotated classes. */
 class ResourceSchemaProcessor(
     private val logger: KSPLogger,
     private val codeGenerator: CodeGenerator,
 ) : SymbolProcessor {
+    lateinit var resolver: Resolver
+
     override fun process(resolver: Resolver): List<KSAnnotated> {
+        this.resolver = resolver
+
         // Create function to initialize ResourceFactory
         val registerResourcesFun = FunSpec.builder("registerResources")
             .receiver(ResourceRegistry::class)
@@ -132,7 +135,7 @@ class ResourceSchemaProcessor(
         resourceSimpleName: String,
         resourceClassName: ClassName,
         defaultConfig: KSClassDeclaration?
-    ): TypeSpec? {
+    ): TypeSpec {
         val resourceSchemaAnnotation =
             resourceSchema.getAnnotationsByType(ResourceSchema::class).first()
 
@@ -273,30 +276,24 @@ class ResourceSchemaProcessor(
     private val BaseResourcePropertiesWithDelegate = listOf("type")
 
     private fun generateBaseResourceProperties(): Iterable<PropertySpec> =
-        Resource::class.memberProperties
-            .filter { it.name in BaseResourceProperties.keys }
+        resolver.getClassDeclarationByName(Resource::class.qualifiedName!!)!!
+            .getAllProperties()
+            .filter { it.simpleName.asString() in BaseResourceProperties.keys }
             .map { property ->
-                var returnType = property.returnType.asTypeName()
-                // Workaround for https://github.com/square/kotlinpoet/issues/279
-                if (property.returnType.toString().startsWith("kotlin.collections.MutableMap")) {
-                    returnType =
-                        ClassName(
-                            "kotlin.collections",
-                            "MutableMap"
-                        ).parameterizedBy(property.returnType.arguments.map { it.type!!.asTypeName() })
-                }
-                PropertySpec.builder(property.name, returnType)
+                val propertyName = property.simpleName.asString()
+                PropertySpec.builder(propertyName, property.type.toTypeName())
                     .addModifiers(KModifier.OVERRIDE)
-                    .mutable(property is KMutableProperty<*>)
+                    .mutable(property.isMutable)
                     .let {
-                        if (property.name in BaseResourcePropertiesWithDelegate) {
-                            it.delegate(BaseResourceProperties[property.name]!!)
+                        if (propertyName in BaseResourcePropertiesWithDelegate) {
+                            it.delegate(BaseResourceProperties[propertyName]!!)
                         } else {
-                            it.initializer(BaseResourceProperties[property.name]!!)
+                            it.initializer(BaseResourceProperties[propertyName]!!)
                         }
                     }
                     .build()
-            }.asIterable()
+            }
+            .asIterable()
 
     @OptIn(KspExperimental::class)
     fun generateAttributes(resourceSchema: KSClassDeclaration): Iterable<PropertySpec> =
@@ -471,9 +468,11 @@ class ResourceSchemaProcessor(
             .filter { declaration -> declaration.superTypes.any { it.resolve().declaration.qualifiedName?.asString() == JsonApiConfig::class.qualifiedName } }
             .firstOrNull()
 
+    @OptIn(KspExperimental::class)
     private fun generateScopeFunctions(resourceType: TypeName): List<FunSpec> {
-        val methods = Scope::class.declaredMemberFunctions
-        logger.info("Generating scope functions for $resourceType: ${methods.joinToString { it.name }}")
+        val scope = resolver.getClassDeclarationByName(Scope::class.qualifiedName!!)
+        val methods = scope!!.getDeclaredFunctions()
+        logger.info("Generating scope functions for $resourceType: ${methods.joinToString { it.simpleName.asString() }}")
         val parameterizedScopeType = Scope::class.asTypeName().parameterizedBy(resourceType)
         return listOf(
             FunSpec.builder("scope")
@@ -491,29 +490,27 @@ class ResourceSchemaProcessor(
                 .addStatement("return %T(%T::class, options)", Scope::class, resourceType)
                 .build()
         ) + methods
-            .filter { it.hasAnnotation<Scope.ScopeMethod>() }
-            .onEach { logger.info("Generating method ${it.name}") }
+            .filter { it.isAnnotationPresent(Scope.ScopeMethod::class) }
+            .onEach { logger.info("Generating method ${it.simpleName.asString()}") }
             .map { method ->
-                logger.info("Generating method ${method.name}")
+                logger.info("Generating method ${method.simpleName.asString()}")
                 val params = method.parameters.filter { it.name != null }
-                val returnType =
-                    if (method.returnType.classifier is KClass<*> && method.returnType.arguments.firstOrNull()?.type.toString() == "R") {
-                        (method.returnType.classifier as KClass<*>).asTypeName()
+                val returnType = method.returnType!!.resolve().let {
+                    if (it.arguments.firstOrNull()?.type?.toString() == "R") {
+                        (it.declaration as KSClassDeclaration)
+                            .toClassName()
                             .parameterizedBy(resourceType)
                     } else {
-                        method.returnType.asTypeName()
+                        it.toTypeName()
                     }
-                val modifiers = mutableListOf<KModifier>().apply {
-                    if (method.isSuspend) add(KModifier.SUSPEND)
-                    if (method.isInline) add(KModifier.INLINE)
                 }
 
-                FunSpec.builder(method.name)
-                    .addModifiers(modifiers)
+                FunSpec.builder(method.simpleName.asString())
+                    .addModifiers(method.modifiers.mapNotNull { it.toKModifier() })
                     .addParameters(params.map {
                         ParameterSpec.builder(
-                            it.name!!,
-                            (if (it.isVararg) it.type.arguments.first().type else it.type)!!.asTypeName()
+                            it.name!!.asString(),
+                            it.type.toTypeName()
                         )
                             .addModifiers(mutableListOf<KModifier>().apply {
                                 if (it.isVararg) add(KModifier.VARARG)
@@ -523,8 +520,8 @@ class ResourceSchemaProcessor(
                     .returns(returnType)
                     .addStatement(
                         "return scope().%L(%L)",
-                        method.name,
-                        params.joinToString(", ") { (if (it.isVararg) "*" else "") + it.name!! })
+                        method.simpleName.asString(),
+                        params.joinToString(", ") { (if (it.isVararg) "*" else "") + it.name!!.asString() })
                     .build()
             }
     }
