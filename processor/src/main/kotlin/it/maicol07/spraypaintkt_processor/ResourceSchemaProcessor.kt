@@ -99,7 +99,7 @@ class ResourceSchemaProcessor(
                 resourceSimpleName,
                 resourceClassName,
                 defaultConfig
-            ) ?: continue
+            )
 
             val resourceFile =
                 FileSpec.builder(resourceSchema.packageName.asString(), resourceClass.name!!)
@@ -256,7 +256,7 @@ class ResourceSchemaProcessor(
         )
         .build()
 
-    private val BaseResourceProperties = mapOf(
+    private val baseResourceProperties = mapOf(
         "id" to CodeBlock.of("%L", "null"),
         "isPersisted" to CodeBlock.of("%L", false),
         "attributes" to CodeBlock.of(
@@ -273,22 +273,22 @@ class ResourceSchemaProcessor(
         "links" to CodeBlock.of("%L", "mutableMapOf()"),
         "type" to CodeBlock.of("%L", "lazy { companion.resourceType }")
     )
-    private val BaseResourcePropertiesWithDelegate = listOf("type")
+    private val baseResourcePropertiesWithDelegate = listOf("type")
 
     private fun generateBaseResourceProperties(): Iterable<PropertySpec> =
         resolver.getClassDeclarationByName(Resource::class.qualifiedName!!)!!
             .getAllProperties()
-            .filter { it.simpleName.asString() in BaseResourceProperties.keys }
+            .filter { it.simpleName.asString() in baseResourceProperties.keys }
             .map { property ->
                 val propertyName = property.simpleName.asString()
                 PropertySpec.builder(propertyName, property.type.toTypeName())
                     .addModifiers(KModifier.OVERRIDE)
                     .mutable(property.isMutable)
                     .let {
-                        if (propertyName in BaseResourcePropertiesWithDelegate) {
-                            it.delegate(BaseResourceProperties[propertyName]!!)
+                        if (propertyName in baseResourcePropertiesWithDelegate) {
+                            it.delegate(baseResourceProperties[propertyName]!!)
                         } else {
-                            it.initializer(BaseResourceProperties[propertyName]!!)
+                            it.initializer(baseResourceProperties[propertyName]!!)
                         }
                     }
                     .build()
@@ -386,7 +386,7 @@ class ResourceSchemaProcessor(
             if (
                 relationResourceSchemaResolved!!.annotations.none {
                     it.annotationType.resolve().declaration.qualifiedName?.asString() == ResourceSchema::class.qualifiedName
-                } == true
+                }
             ) {
                 logger.error("Relationship type is not a ResourceSchema", property)
                 return@map null
