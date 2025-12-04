@@ -6,6 +6,7 @@ plugins {
     kotlin("multiplatform")
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.mavenPublish)
+    alias(libs.plugins.dokkatoo.html)
 }
 
 kotlin {

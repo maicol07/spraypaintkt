@@ -10,7 +10,7 @@ kotlinxSerializationJson = "1.9.0"
 ktor = "3.3.3"
 logbackClassic = "1.5.21"
 mavenPublish = "0.35.0"
-dokka = "2.1.0"
+dokkatoo = "2.4.0"
 ksp = "2.3.3"
 
 # Sample
@@ -40,8 +40,8 @@ androidx-uitest-junit4 = { module = "androidx.compose.ui:ui-test-junit4", versio
 
 [plugins]
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
-dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
-dokka-javadoc = { id = "org.jetbrains.dokka-javadoc", version.ref = "dokka" }
+dokkatoo-html = { id = "dev.adamko.dokkatoo-html", version.ref = "dokkatoo" }
+dokkatoo-javadoc = { id = "dev.adamko.dokkatoo-javadoc", version.ref = "dokkatoo" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
 

@@ -1,4 +1,3 @@
-import org.jetbrains.dokka.gradle.DokkaTaskPartial
 import java.net.URI
 
 plugins {
@@ -7,8 +6,10 @@ plugins {
     kotlin("multiplatform") version libs.versions.kotlin apply false
     kotlin("plugin.serialization") version libs.versions.kotlin apply false
     alias(libs.plugins.mavenPublish) apply false
-    alias(libs.plugins.dokka)
+    alias(libs.plugins.dokkatoo.html)
+    alias(libs.plugins.dokkatoo.javadoc)
     alias(libs.plugins.ksp) apply false
+//    `dokkatoo-convention`
 
     // Sample
     alias(libs.plugins.compose.compiler).apply(false)
@@ -20,36 +21,23 @@ rootProject.extra.set("libVersion", System.getenv("LIB_VERSION") ?: "0.1.0")
 
 version = rootProject.extra.get("libVersion")!!
 
-subprojects {
-    // Exclude sample
-    if (name == "sample") {
-        return@subprojects
-    }
-
-    apply(plugin = "org.jetbrains.dokka")
-
-    tasks {
-        register<Jar>("dokkaJar") {
-            from(dokkaHtml)
-            dependsOn(dokkaHtml)
-            archiveClassifier.set("javadoc")
-        }
-    }
-
-    tasks.withType<DokkaTaskPartial>().configureEach {
-        dokkaSourceSets.configureEach {
-            // Read docs for more details: https://kotlinlang.org/docs/dokka-gradle.html#source-link-configuration
-            sourceLink {
-                localDirectory.set(rootProject.projectDir)
-                remoteUrl.set(URI.create("https://github.com/maicol07/spraypaintkt").toURL())
-                remoteLineSuffix.set("#L")
-            }
-        }
-    }
+dependencies {
+    dokkatoo(project(":annotation"))
+    dokkatoo(project(":core"))
+    dokkatoo(project(":ktor-integration"))
+    dokkatoo(project(":processor"))
 }
 
-// Configures only the parent MultiModule task,
-// this will not affect subprojects
-tasks.dokkaHtmlMultiModule {
-    moduleName.set("Spraypaint.Kt")
+dokkatoo {
+    moduleName.set("SpraypaintKT")
+    moduleVersion.set(version as String)
+
+    dokkatooSourceSets.configureEach {
+        // Read docs for more details: https://kotlinlang.org/docs/dokka-gradle.html#source-link-configuration
+        sourceLink {
+            localDirectory = rootProject.projectDir
+            remoteUrl = URI.create("https://github.com/maicol07/spraypaintkt")
+            remoteLineSuffix = "#L"
+        }
+    }
 }
