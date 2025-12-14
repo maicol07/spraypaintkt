@@ -15,7 +15,7 @@ import kotlin.test.BeforeTest
 abstract class BaseTest {
     @DefaultInstance
     data object AppJsonApiConfig: JsonApiConfig {
-        override val baseUrl: String = "https://safrs.onrender.com/api"
+        override val baseUrl: String = "https://maicol07.eu.pythonanywhere.com/api"
         override val paginationStrategy: PaginationStrategy = PaginationStrategy.OFFSET_BASED
         override val httpClient: HttpClient = KtorHttpClient(httpClientOptions = {
             install(Logging) {
@@ -26,10 +26,5 @@ abstract class BaseTest {
                 requestTimeoutMillis = 60_000 // 1 minute
             }
         })
-    }
-
-    @BeforeTest
-    fun setup() {
-        println("WARNING: The first request may take a bit, as the server is hosted on Render and it needs to wake up.")
     }
 }

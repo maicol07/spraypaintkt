@@ -13,7 +13,7 @@ import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient
 
 @DefaultInstance
 data object AppJsonApiConfig: JsonApiConfig {
-    override val baseUrl: String = "https://safrs.onrender.com/api"
+    override val baseUrl: String = "https://maicol07.eu.pythonanywhere.com/api"
     override val paginationStrategy: PaginationStrategy = PaginationStrategy.OFFSET_BASED
     override val httpClient: HttpClient = KtorHttpClient(httpClientOptions = {
         install(Logging) {
