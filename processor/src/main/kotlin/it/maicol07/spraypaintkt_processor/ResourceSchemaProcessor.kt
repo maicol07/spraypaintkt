@@ -136,8 +136,12 @@ class ResourceSchemaProcessor(
         resourceClassName: ClassName,
         defaultConfig: KSClassDeclaration?
     ): TypeSpec {
-        val resourceSchemaAnnotation =
-            resourceSchema.getAnnotationsByType(ResourceSchema::class).first()
+        // Workaround for https://github.com/google/ksp/issues/2356
+        val resourceSchemaAnnotation = ResourceSchema(
+            resourceSchema.getAnnotationValue<ResourceSchema, String>("resourceType")!!,
+            resourceSchema.getAnnotationValue<ResourceSchema, String>("endpoint")!!,
+            resourceSchema.getAnnotationValue<ResourceSchema, KClass<out JsonApiConfig>>("config")!!
+        )
 
         logger.info("Generating resource class: $resourceSimpleName")
 
@@ -300,7 +304,12 @@ class ResourceSchemaProcessor(
         resourceSchema.getAllProperties()
             .filter { it.isAnnotationPresent(Attr::class) }
             .map { property ->
-                val annotation = property.getAnnotationsByType(Attr::class).first()
+                // Workaround for https://github.com/google/ksp/issues/2356
+                val annotation = Attr(
+                    name = property.getAnnotationValue<Attr, String>("name")!!,
+                    autoTransform = property.getAnnotationValue<Attr, Boolean>("autoTransform")!!,
+                    mutable = property.getAnnotationValue<Attr, Boolean>("mutable")!!
+                )
                 val propertyName = property.simpleName.asString()
                 val attributeName =
                     annotation.name.ifEmpty { if (annotation.autoTransform) propertyName.toSnakeCase() else propertyName }
@@ -352,7 +361,12 @@ class ResourceSchemaProcessor(
     ): Iterable<PropertySpec> = resourceSchema.getAllProperties()
         .filter { it.isAnnotationPresent(Relation::class) }
         .map { property ->
-            val annotation = property.getAnnotationsByType(Relation::class).first()
+            // Workaround for https://github.com/google/ksp/issues/2356
+            val annotation = Relation(
+                name = property.getAnnotationValue<Attr, String>("name")!!,
+                autoTransform = property.getAnnotationValue<Attr, Boolean>("autoTransform")!!,
+                mutable = property.getAnnotationValue<Attr, Boolean>("mutable")!!
+            )
             val propertyName = property.simpleName.asString()
             val relationName =
                 annotation.name.ifEmpty { if (annotation.autoTransform) propertyName.toSnakeCase() else propertyName }
