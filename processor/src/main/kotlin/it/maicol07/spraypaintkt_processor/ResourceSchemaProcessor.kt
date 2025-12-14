@@ -204,14 +204,16 @@ class ResourceSchemaProcessor(
             PropertySpec.builder("resourceType", String::class)
                 .addModifiers(KModifier.OVERRIDE)
                 .initializer("%S", resourceSchemaAnnotation.resourceType.ifEmpty {
-                    resourceClassName.simpleName.lowercase().pluralize()
+                    resourceClassName.simpleName.lowercase()
                 })
                 .build()
         )
         .addProperty(
             PropertySpec.builder("endpoint", String::class)
                 .addModifiers(KModifier.OVERRIDE)
-                .initializer("%S", resourceSchemaAnnotation.endpoint)
+                .initializer("%S", resourceSchemaAnnotation.endpoint.ifEmpty {
+                    resourceClassName.simpleName.lowercase().pluralize()
+                })
                 .build()
         )
         .addProperty(
