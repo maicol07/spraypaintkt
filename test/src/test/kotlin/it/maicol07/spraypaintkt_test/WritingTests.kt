@@ -1,5 +1,9 @@
 package it.maicol07.spraypaintkt_test
 
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.comparables.shouldBeGreaterThan
+import io.kotest.matchers.shouldBe
 import it.maicol07.spraypaintkt.JsonApiException
 import it.maicol07.spraypaintkt.SortDirection
 import it.maicol07.spraypaintkt.extensions.destroy
@@ -7,33 +11,28 @@ import it.maicol07.spraypaintkt.extensions.save
 import it.maicol07.spraypaintkt_test.models.Book
 import it.maicol07.spraypaintkt_test.models.Person
 import it.maicol07.spraypaintkt_test.models.Review
-import kotlinx.coroutines.test.runTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
-class WritingTests : BaseTest() {
-    @Test(timeout = 100_000)
-    fun writing() = runTest {
+class WritingTests : FunSpec({
+    test("writing") {
         val lastPerson = Person.order("id", SortDirection.DESC).first().data
         var person = Person()
         person.name = "John Doe"
         person.email = "john@doe.com"
         person.comment = "This is a comment"
         person.dob = "1990-01-01"
-        assertTrue { person.save() }
+        person.save() shouldBe true
         // Assert new ID is greater than the last one
-        assertTrue { person.id!! > lastPerson.id!! } // For some reason multiple requests are made and the ID is not the last one + 1
+        person.id!! shouldBeGreaterThan lastPerson.id!! // For some reason multiple requests are made and the ID is not the last one + 1
 
         // Refresh the person object
         person = Person.find(person.id!!).data
 
         person.name = "Jane Doe"
-        assertTrue { person.save() }
+        person.save() shouldBe true
 
         val updatedResponse = Person.find(person.id!!)
         val updatedPerson = updatedResponse.data
-        assertEquals("Jane Doe", updatedPerson.name)
+        updatedPerson.name shouldBe "Jane Doe"
         person = updatedPerson
 
         // Refresh the person object
@@ -45,45 +44,37 @@ class WritingTests : BaseTest() {
         review.review = "This is a review"
         review.book = book
         review.reader = person
-        assertTrue { review.save() }
+        review.save() shouldBe true
 
         // Refresh the review object
         review = Review.includes("book", "reader").find(review.id!!).data
+
         // Currently bugged
-//        assertEquals(person.id, review.reader.id)
-//        assertEquals(book.id, review.book.id)
+//        person.id shouldBe review.reader.id
+//        book.id shouldBe review.book.id
 
         // Disabled due to DEMO server bug
 //        println("Destroying review")
-//        assertTrue {
-//            try {
-//                review.destroy()
-//            } catch (e: JsonApiException) {
-//                println("Status code: ${e.statusCode}")
-//                println("Body: ${e.body}")
-//                false
-//            }
+//        review.destroy() shouldBe true
+
+//        val e1 = shouldThrow<JsonApiException> {
+//            Review.find(review.id!!)
 //        }
+//        e1.statusCode shouldBe 404
+
         println("Destroying person")
-        assertTrue {
-            try {
-                person.destroy()
-            } catch (e: JsonApiException) {
-                println("Status code: ${e.statusCode}")
-                println("Body: ${e.body}")
-                false
-            }
+        try {
+            person.destroy() shouldBe true
+        } catch (e: JsonApiException) {
+            println("Status code: ${e.statusCode}")
+            println("Body: ${e.body}")
+            throw e
         }
 
-        try {
-            Review.find(review.id!!)
-        } catch (e: JsonApiException) {
-            assertTrue { e.statusCode == 404 }
-        }
-        try {
+        val e2 = shouldThrow<JsonApiException> {
             Person.find(person.id!!)
-        } catch (e: JsonApiException) {
-            assertTrue { e.statusCode == 404 }
         }
+        e2.statusCode shouldBe 404
     }
-}
+})
+

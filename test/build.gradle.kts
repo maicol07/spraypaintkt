@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm")
     alias(libs.plugins.ksp)
     kotlin("plugin.serialization")
+    alias(libs.plugins.kotest)
 }
 
 dependencies {
@@ -12,7 +13,8 @@ dependencies {
     testImplementation(libs.ktor.client.cio)
     testImplementation(libs.logback.classic)
     testImplementation(libs.ktor.client.logging)
-    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotest.assertions.core)
+    testImplementation(libs.kotest.framework.engine)
     testImplementation(libs.kotlinx.coroutines.test)
     ksp(projects.processor)
     testImplementation(libs.kotlinx.serialization.json)

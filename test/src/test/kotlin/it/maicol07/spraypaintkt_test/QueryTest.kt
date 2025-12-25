@@ -1,119 +1,111 @@
 package it.maicol07.spraypaintkt_test
 
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import it.maicol07.spraypaintkt.SortDirection
 import it.maicol07.spraypaintkt_test.models.Book
 import it.maicol07.spraypaintkt_test.models.ExtendedBook
 import it.maicol07.spraypaintkt_test.models.Review
-import kotlinx.coroutines.test.runTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
 
-class QueryTest : BaseTest() {
-    @Test(timeout = 100_000)
-    fun all() = runTest {
+class QueryTest : FunSpec({
+    test("all") {
         val reviews = Review.all()
-        assertIs<List<Review>>(reviews.data)
+        reviews.data.shouldBeInstanceOf<List<Review>>()
 
         val review = reviews.data.first()
-        assertEquals("Review", review.type)
+        review.type shouldBe "Review"
     }
 
-    @Test(timeout = 100_000)
-    fun find() = runTest {
+    test("find") {
         val response = Review.first()
         val firstReview = response.data
         val review = Review.find(firstReview.id!!)
 
-        assertIs<Review>(review.data)
+        review.data.shouldBeInstanceOf<Review>()
 
         val resource = review.data
-        assertEquals("Review", resource.type)
-        assertEquals(firstReview.id, resource.id)
-        assertEquals(firstReview.review, resource.review)
+        resource.type shouldBe "Review"
+        resource.id shouldBe firstReview.id
+        resource.review shouldBe firstReview.review
     }
 
-    @Test(timeout = 100_000)
-    fun first() = runTest {
+    test("first") {
         val review = Review.first()
-        assertEquals("Review", review.data.type)
+        review.data.type shouldBe "Review"
     }
 
-    @Test(timeout = 100_000)
-    fun filter() = runTest {
+    test("filter") {
         val discussion = Review.where("review", "review 10").first()
-        assertIs<Review>(discussion.data)
+        discussion.data.shouldBeInstanceOf<Review>()
 
-        assertEquals("review 10", discussion.data.review)
+        discussion.data.review shouldBe "review 10"
     }
 
-    @Test(timeout = 100_000)
-    fun sort() = runTest {
+    test("sort") {
         // We can't sort by created because they're all the same
         val reviews = Review.order("review", SortDirection.DESC).first()
-        assertIs<Review>(reviews.data)
+        reviews.data.shouldBeInstanceOf<Review>()
 
         val review = reviews.data
-        assertEquals("Review", review.type)
-        assertEquals("review 99", review.review)
+        review.type shouldBe "Review"
+        review.review shouldBe "review 99"
     }
 
-    @Test(timeout = 100_000)
-    fun include() = runTest {
+    test("include") {
         val firstReview = Review.first().data
         val reviews = Review.includes("book", "reader", "book.publisher", "book.publisher.books").find(firstReview.id!!)
-        assertIs<Review>(reviews.data)
+        reviews.data.shouldBeInstanceOf<Review>()
 
         val review = reviews.data
-        assertEquals("Review", review.type)
-        assertEquals(firstReview.id, review.id)
+        review.type shouldBe "Review"
+        review.id shouldBe firstReview.id
 
         val reader = review.reader
-        assertEquals("Person", reader.type)
-        assertEquals(review.readerId.toString(), reader.id)
+        reader.type shouldBe "Person"
+        reader.id shouldBe review.readerId.toString()
 
         val book = review.book
-        assertEquals(review.bookId, book.id)
+        book.id shouldBe review.bookId
 
         val publisher = book.publisher
-        assertEquals("Publisher", publisher.type)
-        assertEquals(book.publisherId.toString(), publisher.id)
+        publisher.type shouldBe "Publisher"
+        publisher.id shouldBe book.publisherId.toString()
 
         val publishedBooks = review.book.publisher.books
-        assertIs<List<Book>>(publishedBooks)
-        assertEquals(1, publishedBooks.size)
-        assertEquals("Book", publishedBooks[0].type)
-        assertEquals(book.id, publishedBooks[0].id)
+        publishedBooks.shouldBeInstanceOf<List<Book>>()
+        publishedBooks.shouldHaveSize(1)
+        publishedBooks[0].type shouldBe "Book"
+        publishedBooks[0].id shouldBe book.id
     }
 
-    @Test(timeout = 100_000)
-    fun page() = runTest {
+    test("page") {
         val reviews = Review.offset(1).limit(3).all()
-        assertIs<List<Review>>(reviews.data)
-        assertEquals(3, reviews.data.size)
+        reviews.data.shouldBeInstanceOf<List<Review>>()
+        reviews.data.shouldHaveSize(3)
 
         val review = reviews.data.first()
-        assertEquals("Review", review.type)
+        review.type shouldBe "Review"
     }
 
-    @Test(timeout = 100_000)
-    fun extended() = runTest {
+    test("extended") {
         val books = ExtendedBook.all()
-        assertIs<List<ExtendedBook>>(books.data)
+        books.data.shouldBeInstanceOf<List<ExtendedBook>>()
         val book = books.data.first()
-        assertIs<ExtendedBook>(book)
-        assertEquals("Book", book.type)
+        book.shouldBeInstanceOf<ExtendedBook>()
+        book.type shouldBe "Book"
     }
 
-//    @Test(timeout = 100_000)
-//    fun fields() = runTest {
+//    test("fields") {
 //        val discussions = client.select("discussions", "title", "slug").first<Review>()
 //
 //        val discussion = discussions.data
-//        assertEquals("discussions", discussion.type)
-//        assertNotNull(discussion.title)
-//        assertNotNull(discussion.slug)
-////        assertNull(discussion.commentCount)
-//        assertFails { discussion.commentCount }
+//        discussion.type shouldBe "discussions"
+//        discussion.title.shouldNotBeNull()
+//        discussion.slug.shouldNotBeNull()
+////        discussion.commentCount.shouldBeNull()
+//        shouldThrow<Exception> { discussion.commentCount }
 //    }
-}
+})
+

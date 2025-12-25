@@ -1,14 +1,14 @@
 package it.maicol07.spraypaintkt_test
 
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import it.maicol07.spraypaintkt_test.models.Book
 import it.maicol07.spraypaintkt_test.models.Person
 import it.maicol07.spraypaintkt_test.models.Review
-import kotlin.test.Test
-import kotlin.test.assertEquals
 
-class ConstructorTest {
-    @Test
-    fun testConstructor() {
+class ConstructorTest : FunSpec({
+    test("Constructor") {
         val person = Person(
             name = "John Doe",
             email = "john@doe.com",
@@ -16,14 +16,13 @@ class ConstructorTest {
             dob = "1990-01-01"
         )
 
-        assertEquals("John Doe", person.name)
-        assertEquals("john@doe.com", person.email)
-        assertEquals("A comment", person.comment)
-        assertEquals("1990-01-01", person.dob)
+        person.name shouldBe "John Doe"
+        person.email shouldBe "john@doe.com"
+        person.comment shouldBe "A comment"
+        person.dob shouldBe "1990-01-01"
     }
 
-    @Test
-    fun testConstructorWithRelationships() {
+    test("Constructor with relations") {
         val person = Person(name = "Reader")
 
         val book = Book(title = "Book Title")
@@ -34,23 +33,18 @@ class ConstructorTest {
             reader = person
         )
 
-        assertEquals("Great book", review.review)
-        assertEquals(book, review.book)
-        assertEquals(person, review.reader)
+        review.review shouldBe "Great book"
+        review.book shouldBe book
+        review.reader shouldBe person
     }
 
-    @Test
-    fun testPartialConstructor() {
+    test("Partial constructor") {
         val person = Person(name = "John Doe")
-        assertEquals("John Doe", person.name)
+        person.name shouldBe "John Doe"
 
-        var exceptionThrown = false
-        try {
+        shouldThrow<NoSuchElementException> {
             person.email
-        } catch (e: NoSuchElementException) {
-            exceptionThrown = true
         }
-        assertEquals(true, exceptionThrown)
     }
-}
+})
 

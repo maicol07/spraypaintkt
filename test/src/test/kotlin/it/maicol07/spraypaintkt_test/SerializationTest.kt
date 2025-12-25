@@ -1,5 +1,8 @@
 package it.maicol07.spraypaintkt_test
 
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldNotBeEmpty
 import io.ktor.http.quote
 import it.maicol07.spraypaintkt.Resource
 import it.maicol07.spraypaintkt_test.models.Book
@@ -7,12 +10,9 @@ import it.maicol07.spraypaintkt_test.models.BookGenre
 import it.maicol07.spraypaintkt_test.models.Publisher
 import it.maicol07.spraypaintkt_test.models.Review
 import kotlinx.serialization.json.Json
-import org.junit.Test
-import kotlin.test.assertEquals
 
-class SerializationTest: BaseTest() {
-    @Test(timeout = 100_000)
-    fun serializationTest() {
+class SerializationTest : FunSpec({
+    test("serializationTest") {
         val book = Book()
         book.title = "book_title37"
         book.publisher = Publisher().apply {
@@ -49,17 +49,16 @@ class SerializationTest: BaseTest() {
         val jsonMinified = Json { prettyPrint = false }
         val minified = jsonMinified.encodeToString(Json.parseToJsonElement(shouldBe))
 
-        assert(jsonApiString.isNotEmpty())
-        assertEquals(minified, jsonApiString)
+        jsonApiString.shouldNotBeEmpty()
+        jsonApiString shouldBe minified
 
         val serializedJson = Json.encodeToString(book)
-        assert(serializedJson.isNotEmpty())
-        assertEquals(minified, serializedJson.replace("\\\"", "\"").trim('"'))
+        serializedJson.shouldNotBeEmpty()
+        serializedJson.replace("\\\"", "\"").trim('"') shouldBe minified
         println(serializedJson)
     }
 
-    @Test(timeout = 100_000)
-    fun deserializationTest() {
+    test("deserializationTest") {
         // Initialize model or call the initializer manually
         Book
         // or ResourceRegistry.registerResources()
@@ -178,14 +177,13 @@ class SerializationTest: BaseTest() {
         """.trimIndent().quote()
 
         val review = Json.decodeFromString<Resource>(jsonApiString) as Review
-        assert(review.id == "01f6fecf-ccce-4f5b-8934-018faecf6186_75")
-        assert(review.review == "review 37")
-        assert(review.book.title == "book_title37")
-        assert(review.book.publisher.name == "publisher37")
+        review.id shouldBe "01f6fecf-ccce-4f5b-8934-018faecf6186_75"
+        review.review shouldBe "review 37"
+        review.book.title shouldBe "book_title37"
+        review.book.publisher.name shouldBe "publisher37"
     }
 
-    @Test(timeout = 100_000)
-    fun enumSerializationTest() {
+    test("enumSerializationTest") {
         val book = Book()
         book.title = "Dune"
         book.genre = BookGenre.SCIENCE_FICTION
@@ -207,12 +205,11 @@ class SerializationTest: BaseTest() {
         val jsonMinified = Json { prettyPrint = false }
         val minified = jsonMinified.encodeToString(Json.parseToJsonElement(shouldBe))
 
-        assert(jsonApiString.isNotEmpty())
-        assertEquals(minified, jsonApiString)
+        jsonApiString.shouldNotBeEmpty()
+        jsonApiString shouldBe minified
     }
 
-    @Test(timeout = 100_000)
-    fun enumDeserializationTest() {
+    test("enumDeserializationTest") {
         Book // Initialize the resource
 
         val jsonApiString = """
@@ -231,8 +228,8 @@ class SerializationTest: BaseTest() {
         """.trimIndent().quote()
 
         val book = Json.decodeFromString<Resource>(jsonApiString) as Book
-        assert(book.id == "1")
-        assert(book.title == "The Hobbit")
-        assert(book.genre == BookGenre.FANTASY)
+        book.id shouldBe "1"
+        book.title shouldBe "The Hobbit"
+        book.genre shouldBe BookGenre.FANTASY
     }
-}
+})
