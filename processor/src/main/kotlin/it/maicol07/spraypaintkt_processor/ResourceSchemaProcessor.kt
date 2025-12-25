@@ -1,7 +1,6 @@
 package it.maicol07.spraypaintkt_processor
 
 import com.google.devtools.ksp.KspExperimental
-import com.google.devtools.ksp.getAnnotationsByType
 import com.google.devtools.ksp.getClassDeclarationByName
 import com.google.devtools.ksp.getDeclaredFunctions
 import com.google.devtools.ksp.getKotlinClassByName
@@ -143,6 +142,9 @@ class ResourceSchemaProcessor(
             resourceSchema.getAnnotationValue<ResourceSchema, KClass<out JsonApiConfig>>("config")!!
         )
 
+        val attributes = getAttributesInfo(resourceSchema)
+        val relationships = getRelationshipsInfo(resolver, resourceSchema)
+
         logger.info("Generating resource class: $resourceSimpleName")
 
         return TypeSpec.classBuilder(resourceSimpleName)
@@ -177,8 +179,9 @@ class ResourceSchemaProcessor(
                 AnnotationSpec.builder(Serializable::class.asClassName())
                     .addMember("%T.Companion.Serializer::class", resourceClassName).build()
             )
-            .addProperties(generateAttributes(resourceSchema))
-            .addProperties(generateRelationships(resolver, resourceSchema))
+            .addProperties(attributes.map { it.spec })
+            .addProperties(relationships.map { it.spec })
+            .addFunction(generateConstructor(attributes + relationships))
             .build()
     }
 
@@ -302,7 +305,7 @@ class ResourceSchemaProcessor(
             .asIterable()
 
     @OptIn(KspExperimental::class)
-    fun generateAttributes(resourceSchema: KSClassDeclaration): Iterable<PropertySpec> =
+    private fun getAttributesInfo(resourceSchema: KSClassDeclaration): List<PropertyInfo> =
         resourceSchema.getAllProperties()
             .filter { it.isAnnotationPresent(Attr::class) }
             .map { property ->
@@ -323,7 +326,7 @@ class ResourceSchemaProcessor(
                 val classDeclaration = resolver.getClassDeclarationByName(propertyType.declaration.qualifiedName!!)
                 val isEnum = classDeclaration?.classKind == ClassKind.ENUM_CLASS
 
-                PropertySpec.builder(propertyName, property.type.toTypeName())
+                val spec = PropertySpec.builder(propertyName, property.type.toTypeName())
                     .addModifiers(KModifier.OVERRIDE)
                     .mutable(property.isMutable || annotation.mutable)
                     .getter(
@@ -354,13 +357,14 @@ class ResourceSchemaProcessor(
                         } else it
                     }
                     .build()
-            }.asIterable()
+                PropertyInfo(spec, attributeName, true)
+            }.toList()
 
     @OptIn(KspExperimental::class)
-    private fun generateRelationships(
+    private fun getRelationshipsInfo(
         resolver: Resolver,
         resourceSchema: KSClassDeclaration
-    ): Iterable<PropertySpec> = resourceSchema.getAllProperties()
+    ): List<PropertyInfo> = resourceSchema.getAllProperties()
         .filter { it.isAnnotationPresent(Relation::class) }
         .map { property ->
             // Workaround for https://github.com/google/ksp/issues/2356
@@ -421,7 +425,7 @@ class ResourceSchemaProcessor(
                 resourceTypeName.copy(nullable = relationType.isMarkedNullable)
             }
 
-            PropertySpec.builder(propertyName, realType)
+            val spec = PropertySpec.builder(propertyName, realType)
                 .mutable(annotation.mutable)
                 .getter(
                     FunSpec.getterBuilder()
@@ -479,9 +483,10 @@ class ResourceSchemaProcessor(
                 }
                 .addModifiers(KModifier.OVERRIDE)
                 .build()
+            PropertyInfo(spec, relationName, false)
         }
         .filterNotNull()
-        .asIterable()
+        .toList()
 
     private fun getDefaultConfig(resolver: Resolver): KSClassDeclaration? =
         resolver.getSymbolsWithAnnotation(DefaultInstance::class.qualifiedName!!)
@@ -546,4 +551,37 @@ class ResourceSchemaProcessor(
                     .build()
             }
     }
+
+    private fun generateConstructor(properties: List<PropertyInfo>): FunSpec {
+        val builder = FunSpec.constructorBuilder()
+
+        for (property in properties) {
+            val paramName = property.spec.name
+            val paramType = property.spec.type.copy(nullable = true)
+
+            builder.addParameter(
+                ParameterSpec.builder(paramName, paramType)
+                    .defaultValue("null")
+                    .build()
+            )
+
+            val mapName = if (property.isAttribute) "attributes" else "relationships"
+
+            builder.addCode(
+                CodeBlock.builder()
+                    .beginControlFlow("if (%N != null)", paramName)
+                    .addStatement("%N[%S] = %N", mapName, property.jsonName, paramName)
+                    .endControlFlow()
+                    .build()
+            )
+        }
+
+        return builder.build()
+    }
+
+    private data class PropertyInfo(
+        val spec: PropertySpec,
+        val jsonName: String,
+        val isAttribute: Boolean
+    )
 }
