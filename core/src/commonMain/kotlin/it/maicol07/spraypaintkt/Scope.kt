@@ -1,10 +1,6 @@
 package it.maicol07.spraypaintkt
 
-import it.maicol07.spraypaintkt.extensions.JsonObjectMap
-import it.maicol07.spraypaintkt.extensions.extractedContent
-import it.maicol07.spraypaintkt.util.Deserializer
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
 import kotlin.reflect.KClass
 
 /**
@@ -51,8 +47,33 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
      */
     @ScopeMethod
     suspend fun find(id: String): RecordProxy<R> {
-        val json = this.sendRequest(resourceCompanion.urlForResource(id = id))
-        return buildRecordResult(JsonApiSingleResponse.fromJsonApiString(json))
+        val result = findOrNull(id)
+        val data = result.data ?: throw RuntimeException("Record not found")
+        return RecordProxy(data, result.meta, result.raw)
+    }
+
+    /**
+     * Find a resource by its ID or null if not found
+     *
+     * @param id The ID of the record
+     */
+    @ScopeMethod
+    suspend fun findOrNull(id: String): RecordProxy<R?> {
+        try {
+            val json = this.sendRequest(resourceCompanion.urlForResource(id = id))
+            val response = JsonApiSingleResponse.fromJsonApiString(json)
+            return buildRecordResult(response)
+        } catch (e: JsonApiException) {
+            if (e.statusCode == 404) {
+                val response = try {
+                    JsonApiSingleResponse.fromJsonApiString(e.body)
+                } catch (ex: Exception) {
+                    JsonApiSingleResponse(emptyMap())
+                }
+                return RecordProxy(null, response.meta, response)
+            }
+            throw e
+        }
     }
 
     /**
@@ -60,8 +81,76 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
      */
     @ScopeMethod
     suspend fun first(): RecordProxy<R> {
+        val result = firstOrNull()
+        val data = result.data ?: throw RuntimeException("Record not found")
+        return RecordProxy(data, result.meta, result.raw)
+    }
+
+    /**
+     * Get the first resource or null if not found
+     */
+    @ScopeMethod
+    suspend fun firstOrNull(): RecordProxy<R?> {
         val json = this.sendRequest(resourceCompanion.urlForResource())
-        return buildRecordResult(JsonApiSingleResponse.fromJsonApiString(json))
+        val response = JsonApiSingleResponse.fromJsonApiString(json)
+        return buildRecordResult(response)
+    }
+
+    /**
+     * Check if any resource exists
+     */
+    @ScopeMethod
+    suspend fun exists(): Boolean {
+        val oldSize = pagination.size
+        val oldLimit = pagination.limit
+
+        if (resourceCompanion.config.paginationStrategy == PaginationStrategy.PAGE_BASED) {
+            pagination.size = 1
+        } else {
+            pagination.limit = 1
+        }
+
+        try {
+            return firstOrNull().data != null
+        } finally {
+            if (resourceCompanion.config.paginationStrategy == PaginationStrategy.PAGE_BASED) {
+                pagination.size = oldSize
+            } else {
+                pagination.limit = oldLimit
+            }
+        }
+    }
+
+    /**
+     * Get the last resource
+     */
+    @ScopeMethod
+    suspend fun last(): RecordProxy<R> {
+        val result = lastOrNull()
+        val data = result.data ?: throw RuntimeException("Record not found")
+        return RecordProxy(data, result.meta, result.raw)
+    }
+
+    /**
+     * Get the last resource or null if not found
+     */
+    @ScopeMethod
+    suspend fun lastOrNull(): RecordProxy<R?> {
+        val oldSort = HashMap(sort)
+        if (sort.isEmpty()) {
+            sort["id"] = SortDirection.DESC
+        } else {
+            sort.keys.forEach { key ->
+                sort[key] = if (sort[key] == SortDirection.ASC) SortDirection.DESC else SortDirection.ASC
+            }
+        }
+
+        try {
+            return firstOrNull()
+        } finally {
+            sort.clear()
+            sort.putAll(oldSort)
+        }
     }
 
     /**
@@ -218,9 +307,12 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
      *
      * @param jsonResult The JSON:API response
      */
-    private fun buildRecordResult(jsonResult: JsonApiSingleResponse): RecordProxy<R> {
+    private fun buildRecordResult(jsonResult: JsonApiSingleResponse): RecordProxy<R?> {
+        val data = jsonResult.data
+        if (data == null || data["id"] == null || data["type"] == null) {
+            return RecordProxy(null, jsonResult.meta, jsonResult)
+        }
         val model = ResourceRegistry.createInstance(resourceClass)
-        val data = jsonResult.data ?: throw RuntimeException("Record not found")
         model.fromJsonApi(data, jsonResult.included)
         return RecordProxy(model, jsonResult.meta, jsonResult)
     }

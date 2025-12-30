@@ -53,7 +53,7 @@ data class CollectionProxy<R: Resource>(
  * @param meta The meta of the resource.
  * @param raw The raw JSON:API response as a map.
  */
-data class RecordProxy<R: Resource>(
+data class RecordProxy<R>(
     val data: R,
     val meta: Map<String, Any>,
     val raw: JsonApiSingleResponse

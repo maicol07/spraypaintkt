@@ -522,10 +522,11 @@ class ResourceSchemaProcessor(
                 logger.info("Generating method ${method.simpleName.asString()}")
                 val params = method.parameters.filter { it.name != null }
                 val returnType = method.returnType!!.resolve().let {
-                    if (it.arguments.firstOrNull()?.type?.toString() == "R") {
+                    val typeArgument = it.arguments.firstOrNull()?.type?.toString()
+                    if (typeArgument == "R" || typeArgument == "R?") {
                         (it.declaration as KSClassDeclaration)
                             .toClassName()
-                            .parameterizedBy(resourceType)
+                            .parameterizedBy(resourceType.copy(nullable = typeArgument == "R?"))
                     } else {
                         it.toTypeName()
                     }

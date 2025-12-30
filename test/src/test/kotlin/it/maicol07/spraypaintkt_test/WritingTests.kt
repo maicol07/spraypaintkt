@@ -6,8 +6,6 @@ import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import it.maicol07.spraypaintkt.JsonApiException
 import it.maicol07.spraypaintkt.SortDirection
-import it.maicol07.spraypaintkt.extensions.destroy
-import it.maicol07.spraypaintkt.extensions.save
 import it.maicol07.spraypaintkt_test.models.Book
 import it.maicol07.spraypaintkt_test.models.Person
 import it.maicol07.spraypaintkt_test.models.Review

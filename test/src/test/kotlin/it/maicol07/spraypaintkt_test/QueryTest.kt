@@ -1,7 +1,9 @@
 package it.maicol07.spraypaintkt_test
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import it.maicol07.spraypaintkt.SortDirection
@@ -97,15 +99,58 @@ class QueryTest : FunSpec({
         book.type shouldBe "Book"
     }
 
-//    test("fields") {
-//        val discussions = client.select("discussions", "title", "slug").first<Review>()
-//
-//        val discussion = discussions.data
-//        discussion.type shouldBe "discussions"
-//        discussion.title.shouldNotBeNull()
-//        discussion.slug.shouldNotBeNull()
-////        discussion.commentCount.shouldBeNull()
-//        shouldThrow<Exception> { discussion.commentCount }
-//    }
-})
+    test("findOrNull") {
+        val response = Review.first()
+        val firstReview = response.data
+        val review = Review.findOrNull(firstReview.id!!)
 
+        review.data.shouldBeInstanceOf<Review>()
+        review.data!!.id shouldBe firstReview.id
+
+        val notFound = Book.findOrNull("not-found")
+        notFound.data shouldBe null
+    }
+
+    test("exists") {
+        Review.exists() shouldBe true
+        Review.where("review", "not-found").exists() shouldBe false
+    }
+
+    test("last") {
+        val review = Review.last()
+        review.data.shouldBeInstanceOf<Review>()
+    }
+
+    test("lastOrNull") {
+        val review = Review.lastOrNull()
+        review.data.shouldBeInstanceOf<Review>()
+    }
+
+    test("firstOrNull") {
+        val review = Review.firstOrNull()
+        review.data.shouldBeInstanceOf<Review>()
+
+        val notFound = Review.where("review", "not-found").firstOrNull()
+        notFound.data shouldBe null
+    }
+
+    test("extraParam") {
+        val reviews = Review.extraParam("foo", "bar").first()
+        reviews.data.shouldBeInstanceOf<Review>()
+    }
+
+    test("select") {
+        val review = Review.select("reviews", "review").first().data
+        review.review.shouldNotBeNull()
+    }
+
+    test("page based pagination throws") {
+        shouldThrow<RuntimeException> {
+            Review.page(1)
+        }.message shouldBe "Page-based pagination is not supported with the current pagination strategy"
+
+        shouldThrow<RuntimeException> {
+            Review.per(10)
+        }.message shouldBe "Page-based pagination is not supported with the current pagination strategy"
+    }
+})
