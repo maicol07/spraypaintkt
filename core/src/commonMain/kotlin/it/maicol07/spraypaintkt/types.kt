@@ -56,5 +56,6 @@ data class CollectionProxy<R: Resource>(
 data class RecordProxy<R>(
     val data: R,
     val meta: Map<String, Any>,
-    val raw: JsonApiSingleResponse
+    val raw: JsonApiSingleResponse,
+    val error: JsonApiException? = null
 )

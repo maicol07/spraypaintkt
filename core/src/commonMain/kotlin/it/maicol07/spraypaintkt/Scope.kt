@@ -48,6 +48,9 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
     @ScopeMethod
     suspend fun find(id: String): RecordProxy<R> {
         val result = findOrNull(id)
+        if (result.error != null) {
+            throw result.error
+        }
         val data = result.data ?: throw RuntimeException("Record not found")
         return RecordProxy(data, result.meta, result.raw)
     }
@@ -70,7 +73,7 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
                 } catch (ex: Exception) {
                     JsonApiSingleResponse(emptyMap())
                 }
-                return RecordProxy(null, response.meta, response)
+                return RecordProxy(null, response.meta, response, e)
             }
             throw e
         }
@@ -82,7 +85,10 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
     @ScopeMethod
     suspend fun first(): RecordProxy<R> {
         val result = firstOrNull()
-        val data = result.data ?: throw RuntimeException("Record not found")
+        if (result.error != null) {
+            throw result.error
+        }
+        val data = result.data ?: throw JsonApiException(404, "Record not found")
         return RecordProxy(data, result.meta, result.raw)
     }
 
@@ -127,7 +133,10 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
     @ScopeMethod
     suspend fun last(): RecordProxy<R> {
         val result = lastOrNull()
-        val data = result.data ?: throw RuntimeException("Record not found")
+        if (result.error != null) {
+            throw result.error
+        }
+        val data = result.data ?: throw JsonApiException(404, "Record not found")
         return RecordProxy(data, result.meta, result.raw)
     }
 
