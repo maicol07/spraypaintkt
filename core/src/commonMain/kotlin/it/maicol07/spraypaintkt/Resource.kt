@@ -158,4 +158,42 @@ interface Resource {
      * Convert the resource to a URL.
      */
     fun toUrl(): String = companion.urlForResource(this)
+
+    /**
+     * Save the resource to the server.
+     *
+     * @return `true` if the resource was saved successfully. `false` otherwise.
+     */
+    suspend fun save(): Boolean {
+        val url = toUrl()
+        val response = if (isPersisted) {
+            companion.config.httpClient.patch(url, toJsonApiString(onlyDirty = true))
+        } else {
+            companion.config.httpClient.post(url, toJsonApiString())
+        }
+        if (response.statusCode !in 200..204) {
+            throw JsonApiException(response.statusCode, response.body)
+        }
+
+        if (!isPersisted && response.statusCode == 201) {
+            fromJsonApiResponse(JsonApiSingleResponse.fromJsonApiString(response.body))
+        }
+
+        return true
+    }
+
+    /**
+     * Destroy a resource from the server.
+     *
+     * @return `true` if the resource was destroyed successfully. `false` otherwise.
+     */
+    suspend fun destroy(): Boolean {
+        val url = toUrl()
+        val response = companion.config.httpClient.delete(url)
+        if (response.statusCode !in listOf(200, 204)) {
+            throw JsonApiException(response.statusCode, response.body)
+        }
+        return true
+    }
+
 }
