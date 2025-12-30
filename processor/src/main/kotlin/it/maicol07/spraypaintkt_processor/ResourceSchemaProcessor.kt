@@ -58,9 +58,11 @@ class ResourceSchemaProcessor(
     private val codeGenerator: CodeGenerator,
 ) : SymbolProcessor {
     lateinit var resolver: Resolver
+    private var scopeClass: KSClassDeclaration? = null
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         this.resolver = resolver
+        this.scopeClass = resolver.getClassDeclarationByName(Scope::class.qualifiedName!!)
 
         // Create function to initialize ResourceFactory
         val registerResourcesFun = FunSpec.builder("registerResources")
@@ -68,7 +70,10 @@ class ResourceSchemaProcessor(
 
         val symbols = resolver.getSymbolsWithAnnotation(ResourceSchema::class.qualifiedName!!)
             .filterIsInstance(KSClassDeclaration::class.java)
-        if (!symbols.iterator().hasNext()) return emptyList()
+            .toList()
+        if (symbols.isEmpty()) return emptyList()
+
+        val defaultConfig = getDefaultConfig(resolver)
 
         for (resourceSchema in symbols) {
             logger.info("Found annotated class: ${resourceSchema.qualifiedName?.asString()}")
@@ -85,8 +90,6 @@ class ResourceSchemaProcessor(
                 )
                 continue
             }
-
-            val defaultConfig = getDefaultConfig(resolver)
 
             val resourceSimpleName = resourceSchema.simpleName.asString().removeSuffix("Schema")
             val resourceClassName = ClassName.bestGuess(
@@ -496,8 +499,8 @@ class ResourceSchemaProcessor(
 
     @OptIn(KspExperimental::class)
     private fun generateScopeFunctions(resourceType: TypeName): List<FunSpec> {
-        val scope = resolver.getClassDeclarationByName(Scope::class.qualifiedName!!)
-        val methods = scope!!.getDeclaredFunctions()
+        val scope = scopeClass ?: return emptyList()
+        val methods = scope.getDeclaredFunctions()
         logger.info("Generating scope functions for $resourceType: ${methods.joinToString { it.simpleName.asString() }}")
         val parameterizedScopeType = Scope::class.asTypeName().parameterizedBy(resourceType)
         return listOf(
