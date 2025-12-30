@@ -5,7 +5,6 @@ import it.maicol07.spraypaintkt.extensions.toJsonElement
 import it.maicol07.spraypaintkt.interfaces.JsonApiConfig
 import it.maicol07.spraypaintkt.util.Deserializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import kotlin.reflect.KClass
@@ -107,13 +106,13 @@ interface Resource {
         for ((key, value) in (if (onlyDirty) this.relationships.getChanges() else this.relationships)) {
             @Suppress("UNCHECKED_CAST")
             val rel = relationships.getOrPut(key) { mutableMapOf<String, Map<String, Any>>() } as MutableMap<String, Any>
-            val valueList = if (value is List<*>) value else listOf(value)
-            rel["data"] = valueList.map {
+            val valueList = value as? List<*> ?: listOf(value)
+            rel["data"] = valueList.mapNotNull {
                 if (it is Resource) mapOf(
                     "type" to it.type,
                     "id" to it.id,
                 ) else null
-            }.filterNotNull().let { if (it.count() == 1) it.first() else it }
+            }.let { if (it.count() == 1) it.first() else it }
             included.addAll(valueList.mapNotNull {
                 if (it !is Resource) return@mapNotNull null
                 val resJsonApi = it.toJsonApi()
@@ -149,8 +148,7 @@ interface Resource {
     /**
      * Deserialize the resource from a JSON:API response.
      *
-     * @param jsonApiData The JSON:API data.
-     * @param included The included resources.
+     * @param jsonApiResponse The JSON:API data.
      */
     fun fromJsonApiResponse(jsonApiResponse: JsonApiSingleResponse) {
         Deserializer().deserializeToResource(this, jsonApiResponse)
