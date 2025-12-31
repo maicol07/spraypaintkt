@@ -1,6 +1,7 @@
 package it.maicol07.spraypaintkt
 
 import kotlinx.serialization.SerializationException
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.reflect.KClass
 
 /**
@@ -45,7 +46,7 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
      *
      * @param id The ID of the record
      */
-    @Throws(JsonApiException::class, NoSuchElementException::class, Throwable::class)
+    @Throws(JsonApiException::class, NoSuchElementException::class, Throwable::class, CancellationException::class)
     @ScopeMethod
     suspend fun find(id: String): RecordProxy<R> {
         val result = findOrNull(id)
@@ -83,7 +84,7 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
     /**
      * Get the first resource
      */
-    @Throws(JsonApiException::class, NoSuchElementException::class, Throwable::class)
+    @Throws(JsonApiException::class, NoSuchElementException::class, Throwable::class, CancellationException::class)
     @ScopeMethod
     suspend fun first(): RecordProxy<R> {
         val result = firstOrNull()
@@ -133,7 +134,7 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
      * Get the last resource
      */
     @ScopeMethod
-    @Throws(JsonApiException::class, NoSuchElementException::class, Throwable::class)
+    @Throws(JsonApiException::class, NoSuchElementException::class, Throwable::class, CancellationException::class)
     suspend fun last(): RecordProxy<R> {
         val result = lastOrNull()
         if (result.error != null) {

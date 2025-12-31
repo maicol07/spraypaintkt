@@ -7,6 +7,7 @@ import it.maicol07.spraypaintkt.util.Deserializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.reflect.KClass
 
 private const val HTTP_STATUS_OK = 200
@@ -172,7 +173,7 @@ interface Resource {
     /**
      * Save the resource to the server.
      */
-    @Throws(JsonApiException::class)
+    @Throws(JsonApiException::class, CancellationException::class)
     suspend fun save() {
         val url = toUrl()
         val response = if (isPersisted) {
@@ -192,7 +193,7 @@ interface Resource {
     /**
      * Destroy a resource from the server.
      */
-    @Throws(JsonApiException::class)
+    @Throws(JsonApiException::class, CancellationException::class)
     suspend fun destroy() {
         val url = toUrl()
         val response = companion.config.httpClient.delete(url)
