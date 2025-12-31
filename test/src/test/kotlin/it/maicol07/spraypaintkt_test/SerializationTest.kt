@@ -234,4 +234,13 @@ class SerializationTest : FunSpec({
         book.title shouldBe "The Hobbit"
         book.genre shouldBe BookGenre.FANTASY
     }
+
+    test("enumSetterTest") {
+        val book = Book()
+        book.genre = BookGenre.FANTASY
+        book.attributes["genre"] shouldBe "FANTASY"
+
+        book.genre = null
+        book.attributes["genre"] shouldBe null
+    }
 })

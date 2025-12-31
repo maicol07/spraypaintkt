@@ -361,7 +361,18 @@ class ResourceSchemaProcessor(
                             it.setter(
                                 FunSpec.setterBuilder()
                                     .addParameter("value", property.type.toTypeName())
-                                    .addStatement("attributes[%S] = value", attributeName)
+                                    .let { builder ->
+                                        if (isEnum) {
+                                            builder.addStatement(
+                                                "attributes[%S] = value%Lname",
+                                                attributeName,
+                                                if (property.type.resolve().isMarkedNullable) "?." else "."
+                                            )
+                                        } else {
+                                            builder.addStatement("attributes[%S] = value", attributeName)
+                                        }
+                                        builder
+                                    }
                                     .build()
                             )
                         } else it
