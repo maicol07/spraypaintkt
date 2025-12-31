@@ -551,6 +551,17 @@ class ResourceSchemaProcessor(
                 }
 
                 FunSpec.builder(method.simpleName.asString())
+                    .addAnnotations(
+                        method.annotations.mapNotNull {
+                            val type = it.annotationType.resolve()
+                            // Exclude ScopeMethod annotation
+                            if (type.declaration.qualifiedName?.asString() == Scope.ScopeMethod::class.qualifiedName) {
+                                null
+                            } else {
+                                AnnotationSpec.builder(it.annotationType.resolve().toClassName()).build()
+                            }
+                        }.toList()
+                    )
                     .addModifiers(method.modifiers.mapNotNull { it.toKModifier() })
                     .addParameters(params.map {
                         ParameterSpec.builder(
