@@ -9,8 +9,6 @@ package it.maicol07.spraypaintkt_processor
 import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
-import it.maicol07.spraypaintkt.interfaces.JsonApiConfig
-import kotlin.reflect.KClass
 
 @OptIn(KspExperimental::class)
 inline fun <reified A : Annotation> KSAnnotated.findAnnotation() = this.annotations.firstOrNull {

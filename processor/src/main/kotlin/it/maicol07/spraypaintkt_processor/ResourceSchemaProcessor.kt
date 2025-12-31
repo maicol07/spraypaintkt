@@ -111,7 +111,7 @@ class ResourceSchemaProcessor(
             resourceFile.writeTo(
                 codeGenerator,
                 false,
-                listOfNotNull(defaultConfig?.containingFile, *resourceFile.originatingKSFiles().toTypedArray())
+                listOfNotNull(defaultConfig?.containingFile) + resourceFile.originatingKSFiles()
             )
 
             registerResourcesFun.addStatement(
@@ -157,7 +157,8 @@ class ResourceSchemaProcessor(
                 when (resourceSchema.classKind) {
                     ClassKind.INTERFACE -> it.addSuperinterface(resourceSchema.toClassName())
                     ClassKind.CLASS -> it.superclass(resourceSchema.toClassName())
-                    else -> throw IllegalArgumentException("ResourceSchema must be an interface or an abstract class") // Should never happen, since we already checked this before
+                    else -> throw IllegalArgumentException("ResourceSchema must be an interface or an abstract class")
+                    // Should never happen, since we already checked this before
                 }
             }
             .addType(
@@ -236,7 +237,11 @@ class ResourceSchemaProcessor(
                             )
                         )
                             defaultConfig?.asType(emptyList())?.toTypeName()
-                                ?: logger.error("No default JsonApiConfig found. Please provide a config in the ResourceSchema annotation or annotate a JsonApiConfig object with @DefaultInstance")
+                                ?: logger.error(
+                                    "No default JsonApiConfig found. Please provide a config in the " +
+                                        "ResourceSchema annotation or annotate a JsonApiConfig object " +
+                                        "with @DefaultInstance"
+                                )
                         else it
                     })
                 .build()
@@ -319,8 +324,9 @@ class ResourceSchemaProcessor(
                     mutable = property.getAnnotationValue<Attr, Boolean>("mutable")!!
                 )
                 val propertyName = property.simpleName.asString()
-                val attributeName =
-                    annotation.name.ifEmpty { if (annotation.autoTransform) propertyName.toSnakeCase() else propertyName }
+                val attributeName = annotation.name.ifEmpty {
+                    if (annotation.autoTransform) propertyName.toSnakeCase() else propertyName
+                }
 
                 logger.info("Generating attribute $propertyName of type ${property.type}")
 
@@ -344,7 +350,8 @@ class ResourceSchemaProcessor(
                             .nextControlFlow("else")
                             .addStatement(
                                 if (!property.isAbstract()) "super.$propertyName"
-                                else (if (property.type.resolve().isMarkedNullable) "null" else "throw NoSuchElementException(\"$propertyName not found\")")
+                                else if (property.type.resolve().isMarkedNullable) "null" else
+                                    ("throw NoSuchElementException(\"$propertyName not found\")")
                             )
                             .endControlFlow()
                             .build()
@@ -408,7 +415,8 @@ class ResourceSchemaProcessor(
             val relationResourceSchemaResolved = resolver.getKotlinClassByName(relationResourceSchemaName)
             if (
                 relationResourceSchemaResolved!!.annotations.none {
-                    it.annotationType.resolve().declaration.qualifiedName?.asString() == ResourceSchema::class.qualifiedName
+                    it.annotationType.resolve().declaration.qualifiedName?.asString() ==
+                        ResourceSchema::class.qualifiedName
                 }
             ) {
                 logger.error("Relationship type is not a ResourceSchema", property)
@@ -431,6 +439,7 @@ class ResourceSchemaProcessor(
             val spec = PropertySpec.builder(propertyName, realType)
                 .mutable(annotation.mutable)
                 .getter(
+                    @Suppress("SpreadOperator")
                     FunSpec.getterBuilder()
                         .let { builder ->
                             if (isToMany) {
@@ -466,7 +475,8 @@ class ResourceSchemaProcessor(
                             } else (if (isToMany) {
                                 if (realType.isNullable) "null" else "mutableListOf<%T>().%M()"
                             } else {
-                                if (realType.isNullable) "null" else ("throw NoSuchElementException(\"$propertyName not found\")")
+                                if (realType.isNullable) "null" else
+                                    "throw NoSuchElementException(\"$propertyName not found\")"
                             }),
                             if (!property.isAbstract() && isToMany) realType else resourceTypeName,
                             MemberName("it.maicol07.spraypaintkt.extensions.", "trackChanges")
@@ -494,14 +504,19 @@ class ResourceSchemaProcessor(
     private fun getDefaultConfig(resolver: Resolver): KSClassDeclaration? =
         resolver.getSymbolsWithAnnotation(DefaultInstance::class.qualifiedName!!)
             .filterIsInstance<KSClassDeclaration>()
-            .filter { declaration -> declaration.superTypes.any { it.resolve().declaration.qualifiedName?.asString() == JsonApiConfig::class.qualifiedName } }
-            .firstOrNull()
+            .firstOrNull { declaration ->
+                declaration.superTypes.any {
+                    it.resolve().declaration.qualifiedName?.asString() == JsonApiConfig::class.qualifiedName
+                }
+            }
 
     @OptIn(KspExperimental::class)
     private fun generateScopeFunctions(resourceType: TypeName): List<FunSpec> {
         val scope = scopeClass ?: return emptyList()
         val methods = scope.getDeclaredFunctions()
-        logger.info("Generating scope functions for $resourceType: ${methods.joinToString { it.simpleName.asString() }}")
+        logger.info(
+            "Generating scope functions for $resourceType: ${methods.joinToString { it.simpleName.asString() }}"
+        )
         val parameterizedScopeType = Scope::class.asTypeName().parameterizedBy(resourceType)
         return listOf(
             FunSpec.builder("scope")

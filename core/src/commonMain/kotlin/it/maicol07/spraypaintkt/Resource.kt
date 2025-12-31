@@ -9,6 +9,11 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import kotlin.reflect.KClass
 
+private const val HTTP_STATUS_OK = 200
+private const val HTTP_STATUS_CREATED = 201
+private const val HTTP_STATUS_NO_CONTENT = 204
+private val HTTP_STATUS_SUCCESSFUL = HTTP_STATUS_OK..HTTP_STATUS_NO_CONTENT
+
 /**
  * A JSON:API resource.
  */
@@ -20,6 +25,7 @@ interface Resource {
      *
      * @param R The type of the resource.
      */
+    @Suppress("unused")
     interface CompanionObj<R : Resource> {
         /** The type of the resource. */
         val resourceType: String
@@ -105,7 +111,9 @@ interface Resource {
         val relationships = mutableMapOf<String, Any>()
         for ((key, value) in (if (onlyDirty) this.relationships.getChanges() else this.relationships)) {
             @Suppress("UNCHECKED_CAST")
-            val rel = relationships.getOrPut(key) { mutableMapOf<String, Map<String, Any>>() } as MutableMap<String, Any>
+            val rel = relationships.getOrPut(key) {
+                mutableMapOf<String, Map<String, Any>>()
+            } as MutableMap<String, Any>
             val valueList = value as? List<*> ?: listOf(value)
             rel["data"] = valueList.mapNotNull {
                 if (it is Resource) mapOf(
@@ -130,10 +138,12 @@ interface Resource {
     /**
      * Serialize the resource to a JSON:API string.
      */
-    fun toJsonApiString(from: Json = Json.Default, builder: JsonBuilder.() -> Unit = {}, onlyDirty: Boolean = false): String {
-        @Suppress("JSON_FORMAT_REDUNDANT")
-        return Json(from, builder).encodeToString(toJsonApi(onlyDirty).toJsonElement())
-    }
+    fun toJsonApiString(
+        from: Json = Json.Default,
+        builder: JsonBuilder.() -> Unit = {},
+        onlyDirty: Boolean = false
+    ) = @Suppress("JSON_FORMAT_REDUNDANT")
+        Json(from, builder).encodeToString(toJsonApi(onlyDirty).toJsonElement())
 
 
     /**
@@ -161,39 +171,34 @@ interface Resource {
 
     /**
      * Save the resource to the server.
-     *
-     * @return `true` if the resource was saved successfully. `false` otherwise.
      */
-    suspend fun save(): Boolean {
+    @Throws(JsonApiException::class)
+    suspend fun save() {
         val url = toUrl()
         val response = if (isPersisted) {
             companion.config.httpClient.patch(url, toJsonApiString(onlyDirty = true))
         } else {
             companion.config.httpClient.post(url, toJsonApiString())
         }
-        if (response.statusCode !in 200..204) {
+        if (response.statusCode !in HTTP_STATUS_SUCCESSFUL) {
             throw JsonApiException(response.statusCode, response.body)
         }
 
-        if (!isPersisted && response.statusCode == 201) {
+        if (!isPersisted && response.statusCode == HTTP_STATUS_CREATED) {
             fromJsonApiResponse(JsonApiSingleResponse.fromJsonApiString(response.body))
         }
-
-        return true
     }
 
     /**
      * Destroy a resource from the server.
-     *
-     * @return `true` if the resource was destroyed successfully. `false` otherwise.
      */
-    suspend fun destroy(): Boolean {
+    @Throws(JsonApiException::class)
+    suspend fun destroy() {
         val url = toUrl()
         val response = companion.config.httpClient.delete(url)
-        if (response.statusCode !in listOf(200, 204)) {
+        if (response.statusCode !in listOf(HTTP_STATUS_OK, HTTP_STATUS_NO_CONTENT)) {
             throw JsonApiException(response.statusCode, response.body)
         }
-        return true
     }
 
 }

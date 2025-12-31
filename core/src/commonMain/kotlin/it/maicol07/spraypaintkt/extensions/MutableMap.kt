@@ -28,8 +28,7 @@ class DirtyMap<K, V>(
         return oldValue
     }
 
-    @Suppress("UNUSED_PARAMETER")
-    fun trackChange(key: K, oldValue: V?, newValue: V) {
+    fun trackChange(key: K, @Suppress("UNUSED_PARAMETER") oldValue: V?, newValue: V) {
         if (changes == null) {
             changes = mutableMapOf()
         }

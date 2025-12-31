@@ -45,13 +45,14 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
      *
      * @param id The ID of the record
      */
+    @Throws(JsonApiException::class, NoSuchElementException::class, Throwable::class)
     @ScopeMethod
     suspend fun find(id: String): RecordProxy<R> {
         val result = findOrNull(id)
         if (result.error != null) {
             throw result.error
         }
-        val data = result.data ?: throw RuntimeException("Record not found")
+        val data = result.data ?: throw NoSuchElementException()
         return RecordProxy(data, result.meta, result.raw)
     }
 
@@ -82,13 +83,14 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
     /**
      * Get the first resource
      */
+    @Throws(JsonApiException::class, NoSuchElementException::class, Throwable::class)
     @ScopeMethod
     suspend fun first(): RecordProxy<R> {
         val result = firstOrNull()
         if (result.error != null) {
             throw result.error
         }
-        val data = result.data ?: throw JsonApiException(404, "Record not found")
+        val data = result.data ?: throw NoSuchElementException()
         return RecordProxy(data, result.meta, result.raw)
     }
 
@@ -131,12 +133,13 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
      * Get the last resource
      */
     @ScopeMethod
+    @Throws(JsonApiException::class, NoSuchElementException::class, Throwable::class)
     suspend fun last(): RecordProxy<R> {
         val result = lastOrNull()
         if (result.error != null) {
             throw result.error
         }
-        val data = result.data ?: throw JsonApiException(404, "Record not found")
+        val data = result.data ?: throw NoSuchElementException()
         return RecordProxy(data, result.meta, result.raw)
     }
 

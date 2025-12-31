@@ -60,6 +60,7 @@ class SerializationTest : FunSpec({
 
     test("deserializationTest") {
         // Initialize model or call the initializer manually
+        @Suppress("UnusedExpression")
         Book
         // or ResourceRegistry.registerResources()
 
@@ -210,6 +211,7 @@ class SerializationTest : FunSpec({
     }
 
     test("enumDeserializationTest") {
+        @Suppress("UnusedExpression")
         Book // Initialize the resource
 
         val jsonApiString = """
