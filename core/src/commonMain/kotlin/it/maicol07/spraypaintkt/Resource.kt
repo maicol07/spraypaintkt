@@ -20,7 +20,7 @@ private val HTTP_STATUS_SUCCESSFUL = HTTP_STATUS_OK..HTTP_STATUS_NO_CONTENT
  */
 @Serializable(with = Resource.Serializer::class)
 interface Resource {
-    private object Serializer : ResourceSerializer<Resource>()
+    object Serializer : ResourceSerializer<Resource>()
     /**
      * A companion object for the resource.
      *
