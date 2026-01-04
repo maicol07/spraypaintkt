@@ -2,7 +2,7 @@ import java.net.URI
 
 plugins {
     //trick: for the same plugin versions in all sub-modules
-    alias(libs.plugins.android.kmp.library) apply false
+    alias(libs.plugins.androidLibrary) apply false
     kotlin("multiplatform") version libs.versions.kotlin apply false
     kotlin("plugin.serialization") version libs.versions.kotlin apply false
     alias(libs.plugins.mavenPublish) apply false

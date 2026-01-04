@@ -41,7 +41,7 @@ androidx-uitest-testManifest = { module = "androidx.compose.ui:ui-test-manifest"
 androidx-uitest-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "androidx-uiTest" }
 
 [plugins]
-android-kmp-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+androidLibrary = { id = "com.android.library", version.ref = "agp" }
 dokkatoo-html = { id = "dev.adamko.dokkatoo-html", version.ref = "dokkatoo" }
 dokkatoo-javadoc = { id = "dev.adamko.dokkatoo-javadoc", version.ref = "dokkatoo" }
 kotest = { id = "io.kotest", version.ref = "kotest" }
