@@ -16,7 +16,9 @@ private val json = Json { ignoreUnknownKeys = true }
 class JsonApiException(
     val statusCode: Int,
     val body: String
-): RuntimeException() {
+): RuntimeException(
+    "JSON:API Error - Status Code: $statusCode, Body: $body"
+) {
     /**
      * The errors returned by the server.
      */
