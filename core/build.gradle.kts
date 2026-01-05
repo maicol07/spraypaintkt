@@ -80,7 +80,7 @@ android {
 }
 
 mavenPublishing {
-    publishToMavenCentral()
+    publishToMavenCentral(validateDeployment = false)
 
     signAllPublications()
     coordinates(group.toString(), name, version.toString())
