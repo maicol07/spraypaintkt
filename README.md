@@ -9,7 +9,9 @@ A Kotlin library for interacting with JSONAPI-compliant APIs.
 
 # Installation
 
-## Android/Jvm only
+## Installation
+
+### Android/Jvm only
 Add the following to your `build.gradle.kts` file:
 ```kotlin
 plugins {
@@ -55,7 +57,7 @@ kotlin.sourceSets.commonMain {
 }
 ```
 
-## Snapshots
+### Snapshots
 You can find snapshots on [Github Packages](https://github.com/maicol07?tab=packages&repo_name=spraypaintkt).
 To use them, you need to add the following to your `settings.gradle.kts` file:
 ```kotlin
@@ -79,7 +81,6 @@ ghpr.key=TOKEN
 > [!NOTE]
 > More info can be found [here](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry#using-a-published-package)
 
-# Usage
 ## Configuration
 Create a configuration object that implements the `JsonApiConfig` interface and mark it with the `@DefaultInstance` annotation
 (this way the default instance will be used for every resource when not specified).
@@ -97,7 +98,7 @@ data object AppJsonApiConfig: JsonApiConfig {
 }
 ```
 
-## Defining resources
+### Defining resources
 You can define your resources by creating an interface or (abstract) class that ends with `Schema` and annotating it with the `@ResourceSchema` annotation.
 The annotation requires the `resourceType` and `endpoint` properties to be set, but you can also set the configuration object to use (if not the default one).
 ```kotlin
@@ -109,7 +110,7 @@ interface BookSchema {}
 abstract class BookSchema {}
 ```
 
-### Adding attributes
+#### Adding attributes
 You can add attributes to your resource schema by prepending the `@Attr` annotation to an interface (or abstract class) property:
 ```kotlin
 @ResourceSchema(resourceType = "Book", endpoint = "Books")
@@ -161,7 +162,7 @@ abstract class BookSchema {
 > [!IMPORTANT]
 > An interface doesn't have a backing field for the property, so it won't be stored in the property but the getter will be called every time you access the property.
 
-### Adding relationships
+#### Adding relationships
 You can add relationships to your model by prepending the `@Relation` annotation to an interface (or abstract class) property.
 ```kotlin
 @ResourceSchema(resourceType = "Book", endpoint = "Books")
@@ -227,19 +228,19 @@ abstract class BookSchema {
 > [!TIP]
 > If you want a relationship to be nullable (it can assume the value `null`), you can set the type nullable by adding a `?` after the type.
 
-### Registering resources
+#### Registering resources
 To be able to resolve the relationships, you need to register the resources. When you use the generated resources class, these are automatically registered.
 But when you aren't using them directly, such as when deserializing instances, you need to register them manually by calling the `registerResources` method on the `ResourcesRegistry` object.
 ```kotlin
 ResourcesRegistry.registerResources()
 ```
 
-## Generating resources
+### Generating resources
 From now on, resources are automatically generated during the build process when schemas have been changed and you should use these classes to interact with the API.
 These classes implement the resource schema interfaces you defined and they are named like your schema interface without the `Schema` suffix
 and they have the same package as the schema interface.
 
-## Querying
+### Querying
 ```kotlin
 // Find the book with ID = 1
 val response = Book.find(1)
@@ -254,7 +255,7 @@ val response = Book.first()
 val user = response.data
 ```
 
-### Filtering
+#### Filtering
 You can filter the results using the `where` method:
 ```kotlin
 val response = Book.where("title", "Journey to the Center of the Earth").all()
@@ -265,14 +266,14 @@ val response = Book.where("title", "Journey to the Center of the Earth").where("
 val user = response.data
 ```
 
-### Sorting
+#### Sorting
 You can sort the results using the `order` method:
 ```kotlin
 val response = Book.order("title", SortDirection.DESC).all()
 val user = response.data
 ```
 
-### Pagination
+#### Pagination
 You can paginate the results using the `per` and `page` methods:
 ```kotlin
 val response = Book.per(10).page(2).all()
@@ -285,7 +286,7 @@ val response = Book.offset(10).limit(50).all()
 val user = response.data
 ```
 
-### Including relationships
+#### Including relationships
 You can include the relationships using the `includes` method:
 ```kotlin
 val response = Book.includes("reviews", "author").all()
@@ -295,7 +296,7 @@ val user = response.data
 > [!CAUTION]
 > Only if you include the relationships in the request, the library will be able to resolve them in your model.
 
-## Creating
+### Creating
 You can create a new resource using its constructor, filling all the attributes and relationships and then calling the `save` method:
 
 > [!TIP]
@@ -310,7 +311,7 @@ if (result) {
 }
 ```
 
-## Updating
+### Updating
 You can update a resource by modifying the attributes and relationships and then calling the `save` method:
 
 ```kotlin
@@ -322,7 +323,7 @@ if (result) {
 }
 ```
 
-## Deleting
+### Deleting
 To delete a resource, you can use the `destroy` method:
 
 ```kotlin
@@ -332,7 +333,7 @@ if (result) {
 }
 ```
 
-# Exceptions
+## Exceptions
 The library provides a `JsonApiException` class, which is thrown when the JSONAPI server returns an error.
 You can catch it and handle it as you want:
 
@@ -345,8 +346,8 @@ try {
 }
 ```
 
-# Integrations
-## Ktor
+## Integrations
+### Ktor
 The library provides a Ktor integration, which allows you to use the `HttpClient` implementation provided by Ktor.
 
 Add the following to the dependencies (or commonDependencies) block of your `build.gradle.kts` file:
@@ -365,7 +366,7 @@ data object AppJsonApiConfig: JsonApiConfig {
 }
 ```
 
-### Ktor Client Configuration
+#### Ktor Client Configuration
 You can configure the Ktor client by passing a `HttpClientConfig` instance to the `KtorHttpClient` constructor:
 
 ```kotlin
@@ -381,7 +382,7 @@ data object AppJsonApiConfig: JsonApiConfig {
 }
 ```
 
-### Custom Ktor Client
+#### Custom Ktor Client
 You can use a custom full Ktor client by passing it to the `KtorHttpClient` constructor:
 
 ```kotlin
