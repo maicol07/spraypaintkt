@@ -400,3 +400,25 @@ data object AppJsonApiConfig: JsonApiConfig {
     )
 }
 ```
+
+## Tests
+
+```shell
+./gradlew :test:jvmKotest
+```
+
+The default suite is deterministic. Tests against the mutable public demo API are opt-in:
+
+```shell
+RUN_LIVE_TESTS=true ./gradlew :test:jvmKotest
+```
+
+## Sample
+
+```shell
+./gradlew :sample:composeApp:run
+./gradlew :sample:composeApp:jsBrowserDevelopmentRun
+./gradlew :sample:composeApp:wasmJsBrowserDevelopmentRun
+```
+
+The iOS project is under `sample/iosApp`.
