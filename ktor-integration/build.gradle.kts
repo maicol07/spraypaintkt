@@ -52,7 +52,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(projects.core)
-            implementation(libs.ktor.client.core)
+            api(libs.ktor.client.core)
         }
     }
 }
