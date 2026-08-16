@@ -1,6 +1,5 @@
 package it.maicol07.spraypaintkt.sample
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -43,20 +42,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import it.maicol07.spraypaintkt.sample.data.models.Book
 import it.maicol07.spraypaintkt.sample.theme.AppTheme
+import it.maicol07.spraypaintkt.JsonApiException
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun App() = AppTheme {
     var isRefreshing by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var selectedBook by remember { mutableStateOf<Book?>(null) }
     val books = remember { mutableStateListOf<Book>() }
     val coroutineScope = rememberCoroutineScope()
     val refresh = suspend {
         isRefreshing = true
-        val b = Book.includes("author", "publisher", "reviews", "reviews.reader").all()
-        books.removeAll { true }
-        books.addAll(b.data)
-        isRefreshing = false
+        errorMessage = null
+        try {
+            val response = Book.includes("author", "publisher", "reviews", "reviews.reader").all()
+            books.clear()
+            books.addAll(response.data)
+        } catch (error: JsonApiException) {
+            errorMessage = error.message
+        } finally {
+            isRefreshing = false
+        }
     }
     LaunchedEffect(Unit) {
         refresh()
@@ -69,8 +77,8 @@ internal fun App() = AppTheme {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    coroutineScope.launch {
-                        refresh()
+                    if (!isRefreshing) {
+                        coroutineScope.launch { refresh() }
                     }
                 }
             ) {
@@ -82,13 +90,19 @@ internal fun App() = AppTheme {
         }
     ) {
         Column(Modifier.padding(it)) {
-            var selectedBook by remember { mutableStateOf<Book?>(null) }
             if (isRefreshing) {
                 LinearProgressIndicator(Modifier.fillMaxWidth())
             }
+            errorMessage?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(16.dp),
+                )
+            }
 
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+                columns = GridCells.Adaptive(240.dp),
             ) {
                 items(books) { book ->
                     BookCard(book) {
@@ -111,10 +125,10 @@ internal fun App() = AppTheme {
 @Composable
 fun BookCard(book: Book, onClick: () -> Unit = {}) {
     Card(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .clickable(onClick = onClick)
     ) {
         Column(
             modifier = Modifier.padding(8.dp)
@@ -159,7 +173,7 @@ fun BookDetail(book: Book) {
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     headlineContent = { Text(review.reader.name) },
                     supportingContent = { Text("By ${review.reader.name} on ${review.created}") },
-                    leadingContent = { Icon(Icons.Outlined.Star, contentDescription = "Review") }
+                    leadingContent = { Icon(Icons.Outlined.Star, contentDescription = null) }
                 )
             }
         }
