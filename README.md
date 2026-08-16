@@ -13,39 +13,38 @@ A Kotlin library for interacting with JSONAPI-compliant APIs.
 Add the following to your `build.gradle.kts` file:
 ```kotlin
 plugins {
-    id("com.google.devtools.ksp") version "2.0.0-1.0.22"
+    id("com.google.devtools.ksp") version "2.3.0"
 }
 
 dependencies {
-    implementation("it.maicol07.spraypaintkt:core:$latest_version")
-    implementation("it.maicol07.spraypaintkt:annotation:$latest_version")
-    ksp("it.maicol07.spraypaintkt:processor:$latest_version")
+    implementation("it.maicol07.spraypaintkt:core:$version")
+    implementation("it.maicol07.spraypaintkt:annotation:$version")
+    ksp("it.maicol07.spraypaintkt:processor:$version")
 }
 ```
 
-## Multiplatform
+### Multiplatform
 Add the following to your `build.gradle.kts` file:
 ```kotlin
 plugins {
-    id("com.google.devtools.ksp") version "2.0.0-1.0.22"
+    kotlin("multiplatform") version "2.3.0"
+    id("com.google.devtools.ksp") version "2.3.4"
 }
 
 kotlin {
-    sourceSets {
-        commonMain.dependencies {
-            implementation("it.maicol07.spraypaintkt:core:$latest_version")
-            implementation("it.maicol07.spraypaintkt:annotation:$latest_version")
-        }
+    sourceSets.commonMain.dependencies {
+        implementation("it.maicol07.spraypaintkt:core:$version")
+        implementation("it.maicol07.spraypaintkt:annotation:$version")
     }
 }
 
 dependencies {
-    add("kspCommonMainMetadata", "it.maicol07.spraypaintkt:processor:$latest_version")
+    add("kspCommonMainMetadata", "it.maicol07.spraypaintkt:processor:$version")
 }
 
 // Workaround for KSP only in Common Main.
 // https://github.com/google/ksp/issues/567
-tasks.withType<KspAATask>().all {
+tasks.withType<com.google.devtools.ksp.gradle.KspAATask>().configureEach {
     if (name != "kspCommonMainKotlinMetadata") {
         dependsOn("kspCommonMainKotlinMetadata")
     }
