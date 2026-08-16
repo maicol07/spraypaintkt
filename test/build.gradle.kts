@@ -15,7 +15,6 @@ dependencies {
     testImplementation(libs.ktor.client.logging)
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.kotest.framework.engine)
-    testImplementation(libs.kotlinx.coroutines.test)
     ksp(projects.processor)
     testImplementation(libs.kotlinx.serialization.json)
 }
