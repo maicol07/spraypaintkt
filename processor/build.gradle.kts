@@ -30,8 +30,8 @@ mavenPublishing {
     coordinates(group.toString(), name, version.toString())
 
     pom {
-        name = "Spraypaint.Kt - Ktor Integration"
-        description = "Integration with Ktor for Spraypaint.Kt"
+        name = "Spraypaint.Kt - KSP Processor"
+        description = "KSP resource generator for Spraypaint.Kt"
         inceptionYear = "2024"
         url = "https://github.com/maicol07/spraypaintkt"
         licenses {

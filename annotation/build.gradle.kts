@@ -78,7 +78,7 @@ mavenPublishing {
 
     pom {
         name = "Spraypaint.Kt - Annotation"
-        description = "Integration with Ktor for Spraypaint.Kt"
+        description = "Schema annotations for Spraypaint.Kt"
         inceptionYear = "2024"
         url = "https://github.com/maicol07/spraypaintkt"
         licenses {
