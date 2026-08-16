@@ -17,7 +17,7 @@ class JsonApiException(
     val statusCode: Int,
     val body: String
 ): RuntimeException(
-    "JSON:API Error - Status Code: $statusCode, Body: $body"
+    "JSON:API request failed with status $statusCode"
 ) {
     /**
      * The errors returned by the server.
