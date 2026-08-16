@@ -18,7 +18,7 @@ data object AppJsonApiConfig: JsonApiConfig {
     override val httpClient: HttpClient = KtorHttpClient(httpClientOptions = {
         install(Logging) {
             logger = Logger.SIMPLE
-            level = LogLevel.ALL
+            level = LogLevel.INFO
         }
         install(HttpTimeout) {
             requestTimeoutMillis = 90000
