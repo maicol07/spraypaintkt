@@ -18,12 +18,6 @@ kotlin {
         }
         publishLibraryVariants("release", "debug")
     }
-    jvm {
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_17)
-        }
-    }
     jvm()
     js {
         browser()
