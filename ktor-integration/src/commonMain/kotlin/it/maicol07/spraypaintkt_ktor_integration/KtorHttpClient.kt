@@ -77,6 +77,12 @@ class KtorHttpClient(
         return sendRequest(HttpMethod.Delete, url, parameters)
     }
 
+    /** Closes the Ktor client. */
+    @Suppress("unused")
+    fun close() {
+        httpClient.close()
+    }
+
     private suspend fun getResponseObject(response: HttpResponse): HttpClientResponse {
         val responseBody = response.bodyAsText()
         return object : HttpClientResponse {
