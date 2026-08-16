@@ -93,7 +93,7 @@ Example:
 @DefaultInstance
 data object AppJsonApiConfig: JsonApiConfig {
     override val baseUrl: String = "https://safrs.onrender.com/api"
-    override val paginationStrategy: PaginationStrategy = PaginationStrategy.OFFSET_BASED
+    override val paginationStrategy = PaginationStrategy.OFFSET_BASED
     override val httpClient: HttpClient = KtorHttpClient()
 }
 ```
