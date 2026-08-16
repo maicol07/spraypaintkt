@@ -11,48 +11,50 @@ import it.maicol07.spraypaintkt_test.models.Person
 import it.maicol07.spraypaintkt_test.models.Review
 
 class WritingTests : FunSpec({
-    test("writing") {
-        val lastPerson = Person.order("id", SortDirection.DESC).first().data
-        var person = Person()
-        person.name = "John Doe"
-        person.email = "john@doe.com"
-        person.comment = "This is a comment"
-        person.dob = "1990-01-01"
-        person.save()
-        // Assert new ID is greater than the last one
-        person.id!! shouldBeGreaterThan lastPerson.id!!
-        // For some reason multiple requests are made and the ID is not the last one + 1
+    if (liveTestsEnabled) {
 
-        // Refresh the person object
-        person = Person.find(person.id!!).data
+        test("writing") {
+            val lastPerson = Person.order("id", SortDirection.DESC).first().data
+            var person = Person()
+            person.name = "John Doe"
+            person.email = "john@doe.com"
+            person.comment = "This is a comment"
+            person.dob = "1990-01-01"
+            person.save()
+            // Assert new ID is greater than the last one
+            person.id!! shouldBeGreaterThan lastPerson.id!!
+            // For some reason multiple requests are made and the ID is not the last one + 1
 
-        person.name = "Jane Doe"
-        person.save()
+            // Refresh the person object
+            person = Person.find(person.id!!).data
 
-        val updatedResponse = Person.find(person.id!!)
-        val updatedPerson = updatedResponse.data
-        updatedPerson.name shouldBe "Jane Doe"
-        person = updatedPerson
+            person.name = "Jane Doe"
+            person.save()
 
-        // Refresh the person object
-        person = Person.find(person.id!!).data
+            val updatedResponse = Person.find(person.id!!)
+            val updatedPerson = updatedResponse.data
+            updatedPerson.name shouldBe "Jane Doe"
+            person = updatedPerson
 
-        // Add relationship
-        val book = Book.first().data
-        var review = Review()
-        review.review = "This is a review"
-        review.book = book
-        review.reader = person
-        review.save() shouldBe Unit
+            // Refresh the person object
+            person = Person.find(person.id!!).data
 
-        // Refresh the review object
-        review = Review.includes("book", "reader").find(review.id!!).data
+            // Add relationship
+            val book = Book.first().data
+            var review = Review()
+            review.review = "This is a review"
+            review.book = book
+            review.reader = person
+            review.save() shouldBe Unit
 
-        // Currently bugged
+            // Refresh the review object
+            review = Review.includes("book", "reader").find(review.id!!).data
+
+            // Currently bugged
 //        person.id shouldBe review.reader.id
 //        book.id shouldBe review.book.id
 
-        // Disabled due to DEMO server bug
+            // Disabled due to DEMO server bug
 //        println("Destroying review")
 //        review.destroy() shouldBe true
 
@@ -61,13 +63,13 @@ class WritingTests : FunSpec({
 //        }
 //        e1.statusCode shouldBe 404
 
-        println("Destroying person")
-        person.destroy()
+            println("Destroying person")
+            person.destroy()
 
-        val e2 = shouldThrow<JsonApiException> {
-            Person.find(person.id!!)
+            val e2 = shouldThrow<JsonApiException> {
+                Person.find(person.id!!)
+            }
+            e2.statusCode shouldBe 404
         }
-        e2.statusCode shouldBe 404
     }
 })
-

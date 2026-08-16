@@ -11,23 +11,25 @@ import it.maicol07.spraypaintkt.JsonApiException
 import it.maicol07.spraypaintkt_test.models.Publisher
 
 class ErrorsTest : FunSpec({
-    test("Test error handling") {
-        shouldThrow<JsonApiException> {
-            Publisher.find(id = "nonexistent")
+    if (liveTestsEnabled) {
+
+        test("Test error handling") {
+            shouldThrow<JsonApiException> {
+                Publisher.find(id = "nonexistent")
+            }
+
+            val e = shouldThrow<JsonApiException> {
+                Publisher.find(id = "nonexistent")
+            }
+            e.statusCode shouldBe 404
+
+            e.errors.shouldNotBeNull()
+            e.errors.shouldBeInstanceOf<List<JsonApiError>>()
+            e.errors.shouldHaveSize(1)
+
+            val error = e.errors.first()
+
+            error.code shouldBe "404"
         }
-
-        val e = shouldThrow<JsonApiException> {
-            Publisher.find(id = "nonexistent")
-        }
-        e.statusCode shouldBe 404
-
-        e.errors.shouldNotBeNull()
-        e.errors.shouldBeInstanceOf<List<JsonApiError>>()
-        e.errors.shouldHaveSize(1)
-
-        val error = e.errors.first()
-
-        error.code shouldBe "404"
     }
 })
-

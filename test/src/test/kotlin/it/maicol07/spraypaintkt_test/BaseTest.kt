@@ -11,6 +11,8 @@ import it.maicol07.spraypaintkt.interfaces.JsonApiConfig
 import it.maicol07.spraypaintkt_annotation.DefaultInstance
 import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient
 
+internal val liveTestsEnabled: Boolean = System.getenv("RUN_LIVE_TESTS") == "true"
+
 abstract class BaseTest {
     @DefaultInstance
     data object AppJsonApiConfig: JsonApiConfig {

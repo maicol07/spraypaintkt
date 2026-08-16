@@ -12,145 +12,148 @@ import it.maicol07.spraypaintkt_test.models.ExtendedBook
 import it.maicol07.spraypaintkt_test.models.Review
 
 class QueryTest : FunSpec({
-    test("all") {
-        val reviews = Review.all()
-        reviews.data.shouldBeInstanceOf<List<Review>>()
+    if (liveTestsEnabled) {
 
-        val review = reviews.data.first()
-        review.type shouldBe "Review"
-    }
+        test("all") {
+            val reviews = Review.all()
+            reviews.data.shouldBeInstanceOf<List<Review>>()
 
-    test("find") {
-        val response = Review.first()
-        val firstReview = response.data
-        val review = Review.find(firstReview.id!!)
+            val review = reviews.data.first()
+            review.type shouldBe "Review"
+        }
 
-        review.data.shouldBeInstanceOf<Review>()
+        test("find") {
+            val response = Review.first()
+            val firstReview = response.data
+            val review = Review.find(firstReview.id!!)
 
-        val resource = review.data
-        resource.type shouldBe "Review"
-        resource.id shouldBe firstReview.id
-        resource.review shouldBe firstReview.review
-    }
+            review.data.shouldBeInstanceOf<Review>()
 
-    test("first") {
-        val review = Review.first()
-        review.data.type shouldBe "Review"
-    }
+            val resource = review.data
+            resource.type shouldBe "Review"
+            resource.id shouldBe firstReview.id
+            resource.review shouldBe firstReview.review
+        }
 
-    test("filter") {
-        val discussion = Review.where("review", "review 10").first()
-        discussion.data.shouldBeInstanceOf<Review>()
+        test("first") {
+            val review = Review.first()
+            review.data.type shouldBe "Review"
+        }
 
-        discussion.data.review shouldBe "review 10"
-    }
+        test("filter") {
+            val discussion = Review.where("review", "review 10").first()
+            discussion.data.shouldBeInstanceOf<Review>()
 
-    test("sort") {
-        // We can't sort by created because they're all the same
-        val reviews = Review.order("review", SortDirection.DESC).first()
-        reviews.data.shouldBeInstanceOf<Review>()
+            discussion.data.review shouldBe "review 10"
+        }
 
-        val review = reviews.data
-        review.type shouldBe "Review"
-        review.review shouldBe "review 99"
-    }
+        test("sort") {
+            // We can't sort by created because they're all the same
+            val reviews = Review.order("review", SortDirection.DESC).first()
+            reviews.data.shouldBeInstanceOf<Review>()
 
-    test("include") {
-        val firstReview = Review.first().data
-        val reviews = Review.includes("book", "reader", "book.publisher", "book.publisher.books").find(firstReview.id!!)
-        reviews.data.shouldBeInstanceOf<Review>()
+            val review = reviews.data
+            review.type shouldBe "Review"
+            review.review shouldBe "review 99"
+        }
 
-        val review = reviews.data
-        review.type shouldBe "Review"
-        review.id shouldBe firstReview.id
+        test("include") {
+            val firstReview = Review.first().data
+            val reviews = Review.includes("book", "reader", "book.publisher", "book.publisher.books").find(firstReview.id!!)
+            reviews.data.shouldBeInstanceOf<Review>()
 
-        val reader = review.reader
-        reader.type shouldBe "Person"
-        reader.id shouldBe review.readerId.toString()
+            val review = reviews.data
+            review.type shouldBe "Review"
+            review.id shouldBe firstReview.id
 
-        val book = review.book
-        book.id shouldBe review.bookId
+            val reader = review.reader
+            reader.type shouldBe "Person"
+            reader.id shouldBe review.readerId.toString()
 
-        val publisher = book.publisher
-        publisher.type shouldBe "Publisher"
-        publisher.id shouldBe book.publisherId.toString()
+            val book = review.book
+            book.id shouldBe review.bookId
 
-        val publishedBooks = review.book.publisher.books
-        publishedBooks.shouldBeInstanceOf<List<Book>>()
-        publishedBooks.shouldHaveSize(1)
-        publishedBooks[0].type shouldBe "Book"
-        publishedBooks[0].id shouldBe book.id
-    }
+            val publisher = book.publisher
+            publisher.type shouldBe "Publisher"
+            publisher.id shouldBe book.publisherId.toString()
 
-    test("page") {
-        val reviews = Review.offset(1).limit(3).all()
-        reviews.data.shouldBeInstanceOf<List<Review>>()
-        reviews.data.shouldHaveSize(3)
+            val publishedBooks = review.book.publisher.books
+            publishedBooks.shouldBeInstanceOf<List<Book>>()
+            publishedBooks.shouldHaveSize(1)
+            publishedBooks[0].type shouldBe "Book"
+            publishedBooks[0].id shouldBe book.id
+        }
 
-        val review = reviews.data.first()
-        review.type shouldBe "Review"
-    }
+        test("page") {
+            val reviews = Review.offset(1).limit(3).all()
+            reviews.data.shouldBeInstanceOf<List<Review>>()
+            reviews.data.shouldHaveSize(3)
 
-    test("extended") {
-        val books = ExtendedBook.all()
-        books.data.shouldBeInstanceOf<List<ExtendedBook>>()
-        val book = books.data.first()
-        book.shouldBeInstanceOf<ExtendedBook>()
-        book.type shouldBe "Book"
-    }
+            val review = reviews.data.first()
+            review.type shouldBe "Review"
+        }
 
-    test("findOrNull") {
-        val response = Review.first()
-        val firstReview = response.data
-        val review = Review.findOrNull(firstReview.id!!)
+        test("extended") {
+            val books = ExtendedBook.all()
+            books.data.shouldBeInstanceOf<List<ExtendedBook>>()
+            val book = books.data.first()
+            book.shouldBeInstanceOf<ExtendedBook>()
+            book.type shouldBe "Book"
+        }
 
-        review.data.shouldBeInstanceOf<Review>()
-        review.data!!.id shouldBe firstReview.id
+        test("findOrNull") {
+            val response = Review.first()
+            val firstReview = response.data
+            val review = Review.findOrNull(firstReview.id!!)
 
-        val notFound = Book.findOrNull("not-found")
-        notFound.data shouldBe null
-    }
+            review.data.shouldBeInstanceOf<Review>()
+            review.data!!.id shouldBe firstReview.id
 
-    test("exists") {
-        Review.exists() shouldBe true
-        Review.where("review", "not-found").exists() shouldBe false
-    }
+            val notFound = Book.findOrNull("not-found")
+            notFound.data shouldBe null
+        }
 
-    test("last") {
-        val review = Review.last()
-        review.data.shouldBeInstanceOf<Review>()
-    }
+        test("exists") {
+            Review.exists() shouldBe true
+            Review.where("review", "not-found").exists() shouldBe false
+        }
 
-    test("lastOrNull") {
-        val review = Review.lastOrNull()
-        review.data.shouldBeInstanceOf<Review>()
-    }
+        test("last") {
+            val review = Review.last()
+            review.data.shouldBeInstanceOf<Review>()
+        }
 
-    test("firstOrNull") {
-        val review = Review.firstOrNull()
-        review.data.shouldBeInstanceOf<Review>()
+        test("lastOrNull") {
+            val review = Review.lastOrNull()
+            review.data.shouldBeInstanceOf<Review>()
+        }
 
-        val notFound = Review.where("review", "not-found").firstOrNull()
-        notFound.data shouldBe null
-    }
+        test("firstOrNull") {
+            val review = Review.firstOrNull()
+            review.data.shouldBeInstanceOf<Review>()
 
-    test("extraParam") {
-        val reviews = Review.extraParam("foo", "bar").first()
-        reviews.data.shouldBeInstanceOf<Review>()
-    }
+            val notFound = Review.where("review", "not-found").firstOrNull()
+            notFound.data shouldBe null
+        }
 
-    test("select") {
-        val review = Review.select("reviews", "review").first().data
-        review.review.shouldNotBeNull()
-    }
+        test("extraParam") {
+            val reviews = Review.extraParam("foo", "bar").first()
+            reviews.data.shouldBeInstanceOf<Review>()
+        }
 
-    test("page based pagination throws") {
-        shouldThrow<RuntimeException> {
-            Review.page(1)
-        }.message shouldBe "Page-based pagination is not supported with the current pagination strategy"
+        test("select") {
+            val review = Review.select("reviews", "review").first().data
+            review.review.shouldNotBeNull()
+        }
 
-        shouldThrow<RuntimeException> {
-            Review.per(10)
-        }.message shouldBe "Page-based pagination is not supported with the current pagination strategy"
+        test("page based pagination throws") {
+            shouldThrow<RuntimeException> {
+                Review.page(1)
+            }.message shouldBe "Page-based pagination is not supported with the current pagination strategy"
+
+            shouldThrow<RuntimeException> {
+                Review.per(10)
+            }.message shouldBe "Page-based pagination is not supported with the current pagination strategy"
+        }
     }
 })
