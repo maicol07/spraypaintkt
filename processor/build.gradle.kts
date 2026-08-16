@@ -18,9 +18,7 @@ dependencies {
     ksp(libs.auto.service.ksp)
     // NOTE: It's important that you _don't_ use compileOnly here, as it will fail to resolve at compile-time otherwise
     implementation(libs.auto.service.annotations)
-    implementation(kotlin("reflect"))
     implementation(libs.kasechange)
-    implementation(libs.kotlinx.serialization.json)
 }
 
 mavenPublishing {
