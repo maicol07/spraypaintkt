@@ -2,12 +2,14 @@
 
 > Inspired by [Spraypaint.JS](https://github.com/graphiti-api/spraypaint.js)
 
-> [!NOTE]
-> This README is meant for Spraypaint.kt 2.0.0 and above. For the previous version, see the [1.0.0 tag](https://github.com/maicol07/spraypaintkt/tree/1.0.0).
+Kotlin Multiplatformlibrary for interacting with JSON:API-compliant APIs, generated from annotated schemas with KSP.
 
-A Kotlin library for interacting with JSONAPI-compliant APIs.
+## Modules
 
-# Installation
+- `core`: resource model, queries, serialization and HTTP abstraction.
+- `annotation`: `@ResourceSchema`, `@Attr`, `@Relation` and `@DefaultInstance`.
+- `processor`: KSP resource generator.
+- `ktor-integration`: Ktor implementation of the HTTP abstraction.
 
 ## Installation
 
