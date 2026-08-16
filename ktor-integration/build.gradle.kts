@@ -60,6 +60,13 @@ kotlin {
 android {
     namespace = "it.maicol07.spraypaintkt_ktor_integration"
     compileSdk = 36
+    defaultConfig {
+        minSdk = 26
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
 }
 
 
