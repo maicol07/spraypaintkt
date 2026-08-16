@@ -7,7 +7,6 @@ plugins {
     kotlin("plugin.serialization")
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.mavenPublish)
-    alias(libs.plugins.ksp)
     alias(libs.plugins.dokkatoo.html)
 }
 
@@ -54,18 +53,11 @@ kotlin {
     mingwX64()
 
     sourceSets {
-        commonMain {
-            kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
-        }
         commonMain.dependencies {
             api(libs.kotlinx.serialization.json)
         }
     }
 }
-
-//dependencies {
-//    add("kspCommonMainMetadata", projects.processor)
-//}
 
 android {
     namespace = "it.maicol07.spraypaintkt"
@@ -125,9 +117,3 @@ publishing {
         }
     }
 }
-
-//tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
-//    if (name != "kspCommonMainKotlinMetadata") {
-//        dependsOn("kspCommonMainKotlinMetadata")
-//    }
-//}
