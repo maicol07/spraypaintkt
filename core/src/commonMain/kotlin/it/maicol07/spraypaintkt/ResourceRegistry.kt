@@ -7,7 +7,10 @@ import kotlin.reflect.KClass
  */
 object ResourceRegistry {
     /** The registered resources. */
-    val resources = mutableMapOf<KClass<out Resource>, Resource.CompanionObj<out Resource>>()
+    private val mutableResources = mutableMapOf<KClass<out Resource>, Resource.CompanionObj<out Resource>>()
+    private val resourcesByType = mutableMapOf<String, Resource.CompanionObj<out Resource>>()
+    val resources: Map<KClass<out Resource>, Resource.CompanionObj<out Resource>>
+        get() = mutableResources.toMap()
 
     /**
      * Registers a resource.
@@ -20,8 +23,21 @@ object ResourceRegistry {
         resourceCompanionObj: Resource.CompanionObj<R>,
         update: Boolean = true
     ) {
-        if (!update && resources.containsKey(R::class)) throw IllegalArgumentException("Resource ${R::class} already registered")
-        resources[R::class] = resourceCompanionObj
+        registerResource(R::class, resourceCompanionObj, update)
+    }
+
+    fun <R : Resource> registerResource(
+        resourceClass: KClass<R>,
+        resourceCompanionObj: Resource.CompanionObj<R>,
+        update: Boolean,
+    ) {
+        if (!update && mutableResources.containsKey(resourceClass)) {
+            throw IllegalArgumentException("Resource $resourceClass already registered")
+        }
+        mutableResources[resourceClass] = resourceCompanionObj
+        if (!resourcesByType.containsKey(resourceCompanionObj.resourceType)) {
+            resourcesByType[resourceCompanionObj.resourceType] = resourceCompanionObj
+        }
     }
 
     /**
@@ -43,7 +59,7 @@ object ResourceRegistry {
      * @return The new instance.
      */
     fun <R: Resource> createInstance(clazz: KClass<R>): R {
-        val resource = resources[clazz]?.factory?.invoke() ?: throw IllegalArgumentException("$clazz is not a registered resource")
+        val resource = mutableResources[clazz]?.factory?.invoke() ?: throw IllegalArgumentException("$clazz is not a registered resource")
         if (resource::class == clazz) {
             @Suppress("UNCHECKED_CAST")
             return resource as R
@@ -59,7 +75,8 @@ object ResourceRegistry {
      * @return The new instance.
      */
     fun createInstance(type: String): Resource =
-        resources.entries.firstOrNull { it.value.resourceType == type }?.value?.factory?.invoke() ?: throw IllegalArgumentException("No registered resource found for type $type")
+        resourcesByType[type]?.factory?.invoke()
+            ?: throw IllegalArgumentException("No registered resource found for type $type")
 
     /**
      * Gets a resource companion.
@@ -71,7 +88,7 @@ object ResourceRegistry {
      */
     operator fun <R: Resource> get(clazz: KClass<R>): Resource.CompanionObj<R> {
         @Suppress("UNCHECKED_CAST")
-        return resources[clazz] as Resource.CompanionObj<R>? ?: throw IllegalArgumentException("No registered resource found for class $clazz")
+        return mutableResources[clazz] as Resource.CompanionObj<R>? ?: throw IllegalArgumentException("No registered resource found for class $clazz")
     }
 
     /**
@@ -89,7 +106,7 @@ object ResourceRegistry {
      * @return The companion object of the resource.
      */
     operator fun get(type: String): Resource.CompanionObj<out Resource> =
-        resources.entries.firstOrNull { it.value.resourceType == type }?.value ?: throw IllegalArgumentException("No registered resource found for type $type")
+        resourcesByType[type] ?: throw IllegalArgumentException("No registered resource found for type $type")
 
     /**
      * Gets a resource class.
@@ -99,7 +116,7 @@ object ResourceRegistry {
      * @return The class of the resource.
      */
     operator fun get(companionObj: Resource.CompanionObj<out Resource>): KClass<out Resource> =
-        resources.entries.firstOrNull { it.value == companionObj }?.key ?: throw IllegalArgumentException("No registered resource found for companion $companionObj")
+        mutableResources.entries.firstOrNull { it.value == companionObj }?.key ?: throw IllegalArgumentException("No registered resource found for companion $companionObj")
 
     /**
      * Gets a resource class.
@@ -109,5 +126,6 @@ object ResourceRegistry {
      * @return The class of the resource.
      */
     fun getEntry(type: String): Pair<KClass<out Resource>, Resource.CompanionObj<out Resource>> =
-        resources.entries.firstOrNull { it.value.resourceType == type }?.toPair() ?: throw IllegalArgumentException("No registered resource found for type $type")
+        resourcesByType[type]?.let { get(it) to it }
+            ?: throw IllegalArgumentException("No registered resource found for type $type")
 }
