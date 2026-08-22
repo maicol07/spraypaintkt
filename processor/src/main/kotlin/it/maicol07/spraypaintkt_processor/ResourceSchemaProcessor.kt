@@ -13,6 +13,7 @@ import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.validate
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
@@ -50,7 +51,6 @@ import it.maicol07.spraypaintkt_annotation.ResourceSchema
 import kotlinx.serialization.Serializable
 import net.pearx.kasechange.toSnakeCase
 import kotlin.reflect.KClass
-import kotlin.reflect.full.isSubclassOf
 
 /** Processes [ResourceSchema] annotations in order to create 'model' representations of annotated classes. */
 class ResourceSchemaProcessor(
@@ -139,10 +139,12 @@ class ResourceSchemaProcessor(
         defaultConfig: KSClassDeclaration?
     ): TypeSpec {
         // Workaround for https://github.com/google/ksp/issues/2356
-        val resourceSchemaAnnotation = ResourceSchema(
-            resourceSchema.getAnnotationValue<ResourceSchema, String>("resourceType")!!,
-            resourceSchema.getAnnotationValue<ResourceSchema, String>("endpoint")!!,
-            resourceSchema.getAnnotationValue<ResourceSchema, KClass<out JsonApiConfig>>("config")!!
+        val resourceSchemaAnnotation = resourceSchema.findAnnotation<ResourceSchema>()!!
+        val resourceSchemaInfo = ResourceSchemaInfo(
+            resourceType = resourceSchemaAnnotation.getArgumentValueByName<String>("resourceType").orEmpty(),
+            endpoint = resourceSchemaAnnotation.getArgumentValueByName<String>("endpoint").orEmpty(),
+            config = (resourceSchemaAnnotation.getArgumentValueByName<KSType>("config")?.declaration
+                as? KSClassDeclaration),
         )
 
         val attributes = getAttributesInfo(resourceSchema)
@@ -165,7 +167,7 @@ class ResourceSchemaProcessor(
                 generateResourceCompanionObject(
                     resourceSchema,
                     resourceClassName,
-                    resourceSchemaAnnotation,
+                    resourceSchemaInfo,
                     defaultConfig
                 )
             )
@@ -192,7 +194,7 @@ class ResourceSchemaProcessor(
     private fun generateResourceCompanionObject(
         resourceSchema: KSClassDeclaration,
         resourceClassName: ClassName,
-        resourceSchemaAnnotation: ResourceSchema,
+        resourceSchemaAnnotation: ResourceSchemaInfo,
         defaultConfig: KSClassDeclaration?
     ) = TypeSpec.companionObjectBuilder()
         .addSuperinterface(
@@ -227,23 +229,17 @@ class ResourceSchemaProcessor(
             PropertySpec.builder("config", JsonApiConfig::class)
                 .addModifiers(KModifier.OVERRIDE)
                 .initializer(
-                    "%T", (try {
-                        resourceSchemaAnnotation.config
-                    } catch (_: NoSuchElementException) {
-                        JsonApiConfig::class
-                    }).let {
-                        if (it.qualifiedName == JsonApiConfig::class.qualifiedName || !it.isSubclassOf(
-                                JsonApiConfig::class
-                            )
-                        )
-                            defaultConfig?.asType(emptyList())?.toTypeName()
-                                ?: logger.error(
-                                    "No default JsonApiConfig found. Please provide a config in the " +
-                                        "ResourceSchema annotation or annotate a JsonApiConfig object " +
-                                        "with @DefaultInstance"
-                                )
-                        else it
-                    })
+                    "%T",
+                    resourceSchemaAnnotation.config
+                        ?.takeUnless { it.qualifiedName?.asString() == JsonApiConfig::class.qualifiedName }
+                        ?.asType(emptyList())
+                        ?.toTypeName()
+                        ?: defaultConfig?.asType(emptyList())?.toTypeName()
+                        ?: logger.error(
+                            "No default JsonApiConfig found. Provide one in @ResourceSchema or mark a " +
+                                "JsonApiConfig object with @DefaultInstance"
+                        ),
+                )
                 .build()
         )
         .addProperty(
@@ -378,7 +374,7 @@ class ResourceSchemaProcessor(
                         } else it
                     }
                     .build()
-                PropertyInfo(spec, attributeName, true)
+                PropertyInfo(spec, attributeName, true, isEnum)
             }.toList()
 
     @OptIn(KspExperimental::class)
@@ -390,9 +386,9 @@ class ResourceSchemaProcessor(
         .map { property ->
             // Workaround for https://github.com/google/ksp/issues/2356
             val annotation = Relation(
-                name = property.getAnnotationValue<Attr, String>("name")!!,
-                autoTransform = property.getAnnotationValue<Attr, Boolean>("autoTransform")!!,
-                mutable = property.getAnnotationValue<Attr, Boolean>("mutable")!!
+                name = property.getAnnotationValue<Relation, String>("name")!!,
+                autoTransform = property.getAnnotationValue<Relation, Boolean>("autoTransform")!!,
+                mutable = property.getAnnotationValue<Relation, Boolean>("mutable")!!
             )
             val propertyName = property.simpleName.asString()
             val relationName =
@@ -611,7 +607,12 @@ class ResourceSchemaProcessor(
             builder.addCode(
                 CodeBlock.builder()
                     .beginControlFlow("if (%N != null)", paramName)
-                    .addStatement("%N[%S] = %N", mapName, property.jsonName, paramName)
+                    .addStatement(
+                        if (property.isEnum) "%N[%S] = %N.name" else "%N[%S] = %N",
+                        mapName,
+                        property.jsonName,
+                        paramName,
+                    )
                     .endControlFlow()
                     .build()
             )
@@ -623,6 +624,13 @@ class ResourceSchemaProcessor(
     private data class PropertyInfo(
         val spec: PropertySpec,
         val jsonName: String,
-        val isAttribute: Boolean
+        val isAttribute: Boolean,
+        val isEnum: Boolean = false,
+    )
+
+    private data class ResourceSchemaInfo(
+        val resourceType: String,
+        val endpoint: String,
+        val config: KSClassDeclaration?,
     )
 }
