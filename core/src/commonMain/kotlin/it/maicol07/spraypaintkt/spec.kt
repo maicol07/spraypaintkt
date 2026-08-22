@@ -134,7 +134,7 @@ class JsonApiRelationship(
     /** If the relationship is a single relationship. */
     val isSingle: Boolean by lazy { response["data"] is Map<*, *> || response["data"] == null }
     /** The links of the relationship. */
-    val links = response.getOrElse("links") { null } as? JsonApiRelationshipLinks
+    val links = (response["links"] as? Map<String, Any>)?.let(::JsonApiRelationshipLinks)
     /** The meta of the relationship. */
     val meta = response.getOrElse("meta") { null } as? Map<String, Any>
 }

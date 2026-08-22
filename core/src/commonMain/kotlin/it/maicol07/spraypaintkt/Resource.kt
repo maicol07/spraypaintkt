@@ -1,6 +1,7 @@
 package it.maicol07.spraypaintkt
 
 import it.maicol07.spraypaintkt.extensions.DirtyMap
+import it.maicol07.spraypaintkt.extensions.encodePathSegment
 import it.maicol07.spraypaintkt.extensions.toJsonElement
 import it.maicol07.spraypaintkt.interfaces.JsonApiConfig
 import it.maicol07.spraypaintkt.util.Deserializer
@@ -12,6 +13,7 @@ import kotlin.reflect.KClass
 
 private const val HTTP_STATUS_OK = 200
 private const val HTTP_STATUS_CREATED = 201
+private const val HTTP_STATUS_ACCEPTED = 202
 private const val HTTP_STATUS_NO_CONTENT = 204
 private val HTTP_STATUS_SUCCESSFUL = HTTP_STATUS_OK..HTTP_STATUS_NO_CONTENT
 
@@ -21,6 +23,27 @@ private val HTTP_STATUS_SUCCESSFUL = HTTP_STATUS_OK..HTTP_STATUS_NO_CONTENT
 @Serializable(with = Resource.Serializer::class)
 interface Resource {
     object Serializer : ResourceSerializer<Resource>()
+
+    private fun identifier(): Map<String, Any?> = mapOf("type" to type, "id" to id)
+
+    private fun relationshipData(value: Any?): Any? = when (value) {
+        null -> null
+        is List<*> -> value.mapNotNull { (it as? Resource)?.identifier() }
+        is Resource -> value.identifier()
+        else -> null
+    }
+
+    private fun dataObject(onlyDirty: Boolean): Map<String, Any?> = buildMap {
+        put("type", type)
+        id?.let { put("id", it) }
+        put("attributes", if (onlyDirty) attributes.getChanges() else attributes)
+        put(
+            "relationships",
+            (if (onlyDirty) relationships.getChanges() else relationships).mapValues { (_, value) ->
+                mapOf("data" to relationshipData(value))
+            },
+        )
+    }
     /**
      * A companion object for the resource.
      *
@@ -49,7 +72,8 @@ interface Resource {
          * @return The new instance.
          */
         fun urlForResource(resource: Resource? = null, id: String? = null): String {
-            return listOf(config.baseUrl, config.apiNamespace, endpoint, id ?: resource?.id ?: "")
+            val resourceId = (id ?: resource?.id)?.encodePathSegment().orEmpty()
+            return listOf(config.baseUrl, config.apiNamespace, endpoint, resourceId)
                 .filter { it.isNotEmpty() }
                 .joinToString("/") { it.trim('/', '\\') }
         }
@@ -60,18 +84,18 @@ interface Resource {
          * @param jsonApiData The JSON:API data.
          * @param included The included resources.
          */
-        fun fromJsonApi(jsonApiData: JsonApiResource, included: List<JsonApiResource>) {
-            Deserializer().deserialize(jsonApiData, included)
-        }
+        fun fromJsonApi(jsonApiData: JsonApiResource, included: List<JsonApiResource>): R =
+            @Suppress("UNCHECKED_CAST")
+            (Deserializer().deserialize(jsonApiData, included) as R)
 
         /**
          * Deserialize the resource from a JSON:API response.
          *
          * @param jsonApiResponse The JSON:API response.
          */
-        fun fromJsonApi(jsonApiResponse: JsonApiSingleResponse) {
-            Deserializer().deserialize(jsonApiResponse)
-        }
+        fun fromJsonApi(jsonApiResponse: JsonApiSingleResponse): R =
+            @Suppress("UNCHECKED_CAST")
+            (Deserializer().deserialize(jsonApiResponse) as R)
     }
 
     /** The companion object of the resource. */
@@ -102,38 +126,14 @@ interface Resource {
      * Serialize the resource to a JSON:API object.
      */
     fun toJsonApi(onlyDirty: Boolean = false): Map<String, Any?> {
-        val data = mutableMapOf<String, Any?>("type" to type)
-        if (id != null) {
-            data["id"] = id
-        }
-        data["attributes"] = if (onlyDirty) attributes.getChanges() else attributes
+        val relationshipValues =
+            if (onlyDirty) relationships.getChanges().values else relationships.values
+        val included = relationshipValues
+            .flatMap { value -> if (value is List<*>) value else listOf(value) }
+            .filterIsInstance<Resource>()
+            .mapTo(linkedSetOf()) { it.dataObject(onlyDirty = false) }
 
-        val included = mutableSetOf<Map<String, Any?>>()
-        val relationships = mutableMapOf<String, Any>()
-        for ((key, value) in (if (onlyDirty) this.relationships.getChanges() else this.relationships)) {
-            @Suppress("UNCHECKED_CAST")
-            val rel = relationships.getOrPut(key) {
-                mutableMapOf<String, Map<String, Any>>()
-            } as MutableMap<String, Any>
-            val valueList = value as? List<*> ?: listOf(value)
-            rel["data"] = valueList.mapNotNull {
-                if (it is Resource) mapOf(
-                    "type" to it.type,
-                    "id" to it.id,
-                ) else null
-            }.let { if (it.count() == 1) it.first() else it }
-            included.addAll(valueList.mapNotNull {
-                if (it !is Resource) return@mapNotNull null
-                val resJsonApi = it.toJsonApi()
-                @Suppress("UNCHECKED_CAST")
-                included.addAll(resJsonApi["included"] as Collection<Map<String, Any?>>)
-                @Suppress("UNCHECKED_CAST")
-                resJsonApi["data"] as Map<String, Any?>
-            })
-        }
-        data["relationships"] = relationships
-
-        return mapOf("data" to data, "included" to included)
+        return mapOf("data" to dataObject(onlyDirty), "included" to included)
     }
 
     /**
@@ -185,9 +185,11 @@ interface Resource {
             throw JsonApiException(response.statusCode, response.body)
         }
 
-        if (!isPersisted && response.statusCode == HTTP_STATUS_CREATED) {
+        if (response.statusCode in listOf(HTTP_STATUS_OK, HTTP_STATUS_CREATED) && response.body.isNotBlank()) {
             fromJsonApiResponse(JsonApiSingleResponse.fromJsonApiString(response.body))
         }
+        attributes.clearChanges()
+        relationships.clearChanges()
     }
 
     /**
@@ -197,7 +199,7 @@ interface Resource {
     suspend fun destroy() {
         val url = toUrl()
         val response = companion.config.httpClient.delete(url)
-        if (response.statusCode !in listOf(HTTP_STATUS_OK, HTTP_STATUS_NO_CONTENT)) {
+        if (response.statusCode !in listOf(HTTP_STATUS_OK, HTTP_STATUS_ACCEPTED, HTTP_STATUS_NO_CONTENT)) {
             throw JsonApiException(response.statusCode, response.body)
         }
     }

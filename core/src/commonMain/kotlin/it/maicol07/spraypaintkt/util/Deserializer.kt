@@ -24,6 +24,13 @@ class Deserializer {
      * @return The deserialized [Resource] object.
      */
     fun deserialize(jsonApiData: JsonApiResource, included: List<JsonApiResource>): Resource {
+        return deserialize(jsonApiData, included.associateBy { it.type to it.id })
+    }
+
+    private fun deserialize(
+        jsonApiData: JsonApiResource,
+        included: Map<Pair<String, String>, JsonApiResource>,
+    ): Resource {
         val type = jsonApiData.type
         val id = jsonApiData.id
         val model = cache.getOrElse(Pair(type, id)) {
@@ -78,6 +85,14 @@ class Deserializer {
      * @return The updated [Resource] object.
      */
     fun <R: Resource> deserializeToResource(resource: R, datum: JsonApiResource, included: List<JsonApiResource>): R {
+        return deserializeToResource(resource, datum, included.associateBy { it.type to it.id })
+    }
+
+    private fun <R: Resource> deserializeToResource(
+        resource: R,
+        datum: JsonApiResource,
+        included: Map<Pair<String, String>, JsonApiResource>,
+    ): R {
 //        Logger.d("Deserializer") { "Deserializing ${model.type} with id ${datum.id}" }
         resource.id = datum.id
         resource.isPersisted = true
@@ -105,7 +120,7 @@ class Deserializer {
                 for (relationshipData in relationData) {
                     val type = relationshipData.type
                     val id = relationshipData.id
-                    val related = included.find { it.type == type && it.id == id }
+                    val related = included[type to id]
                     if (related != null) {
                         val cached = cache.getOrElse(Pair(type, id)) {
                             val resource = ResourceRegistry.createInstance(type)
