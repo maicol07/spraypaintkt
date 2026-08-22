@@ -72,7 +72,7 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
             if (e.statusCode == 404) {
                 val response = try {
                     JsonApiSingleResponse.fromJsonApiString(e.body)
-                } catch (ex: Exception) {
+                } catch (_: SerializationException) {
                     JsonApiSingleResponse(emptyMap())
                 }
                 return RecordProxy(null, response.meta, response, e)
@@ -100,19 +100,8 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
      */
     @ScopeMethod
     suspend fun firstOrNull(): RecordProxy<R?> {
-        val json = this.sendRequest(resourceCompanion.urlForResource())
-        val response = JsonApiSingleResponse.fromJsonApiString(json)
-        return buildRecordResult(response)
-    }
-
-    /**
-     * Check if any resource exists
-     */
-    @ScopeMethod
-    suspend fun exists(): Boolean {
         val oldSize = pagination.size
         val oldLimit = pagination.limit
-
         if (resourceCompanion.config.paginationStrategy == PaginationStrategy.PAGE_BASED) {
             pagination.size = 1
         } else {
@@ -120,15 +109,19 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
         }
 
         try {
-            return firstOrNull().data != null
+            val json = sendRequest(resourceCompanion.urlForResource())
+            return buildRecordResult(JsonApiSingleResponse.fromJsonApiString(json))
         } finally {
-            if (resourceCompanion.config.paginationStrategy == PaginationStrategy.PAGE_BASED) {
-                pagination.size = oldSize
-            } else {
-                pagination.limit = oldLimit
-            }
+            pagination.size = oldSize
+            pagination.limit = oldLimit
         }
     }
+
+    /**
+     * Check if any resource exists
+     */
+    @ScopeMethod
+    suspend fun exists(): Boolean = firstOrNull().data != null
 
     /**
      * Get the last resource
@@ -157,7 +150,6 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
                 sort[key] = if (sort[key] == SortDirection.ASC) SortDirection.DESC else SortDirection.ASC
             }
         }
-
         try {
             return firstOrNull()
         } finally {
@@ -250,10 +242,18 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
      * Order the resources by an attribute
      *
      * @param attribute The attribute to order by
+     */
+    @ScopeMethod
+    fun order(attribute: String): Scope<R> = order(attribute, SortDirection.ASC)
+
+    /**
+     * Order the resources by an attribute
+     *
+     * @param attribute The attribute to order by
      * @param sortDirection The direction to order in
      */
     @ScopeMethod
-    fun order(attribute: String, sortDirection: SortDirection = SortDirection.ASC): Scope<R> {
+    fun order(attribute: String, sortDirection: SortDirection): Scope<R> {
         sort[attribute] = sortDirection
         return this
     }
@@ -289,10 +289,15 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
     private suspend fun sendRequest(url: String): String {
         val params = mutableMapOf(
             *filter.map { (key, value) -> "filter[$key]" to value }.toTypedArray(),
-            *sort.map { (key, value) -> "sort" to (if (value == SortDirection.ASC) key else "-$key") }.toTypedArray(),
             *params.toList().toTypedArray(),
             *fields.map { (key, value) -> "fields[$key]" to value.joinToString(",") }.toTypedArray()
         )
+
+        if (sort.isNotEmpty()) {
+            params["sort"] = sort.entries.joinToString(",") { (key, value) ->
+                if (value == SortDirection.ASC) key else "-$key"
+            }
+        }
 
         if (includes.isNotEmpty()) {
             params["include"] = includes.joinToString(",")
@@ -308,11 +313,7 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
             throw JsonApiException(response.statusCode, response.body)
         }
 
-        try {
-            return response.body
-        } catch (e: SerializationException) {
-            throw RuntimeException("Failed to decode JSONAPI Response")
-        }
+        return response.body
     }
 
     /**
