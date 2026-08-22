@@ -54,8 +54,7 @@ class SerializationTest : FunSpec({
 
         val serializedJson = Json.encodeToString(book)
         serializedJson.shouldNotBeEmpty()
-        serializedJson.replace("\\\"", "\"").trim('"') shouldBe minified
-        println(serializedJson)
+        serializedJson shouldBe minified
     }
 
     test("deserializationTest") {
