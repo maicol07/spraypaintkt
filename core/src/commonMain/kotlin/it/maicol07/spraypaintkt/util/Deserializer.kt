@@ -2,8 +2,10 @@ package it.maicol07.spraypaintkt.util
 
 import it.maicol07.spraypaintkt.JsonApiResource
 import it.maicol07.spraypaintkt.JsonApiSingleResponse
+import it.maicol07.spraypaintkt.JsonApiLinkage
 import it.maicol07.spraypaintkt.Resource
 import it.maicol07.spraypaintkt.ResourceRegistry
+import it.maicol07.spraypaintkt.extensions.extractedContent
 import it.maicol07.spraypaintkt.extensions.trackChanges
 
 /**
@@ -98,14 +100,14 @@ class Deserializer {
         resource.isPersisted = true
 
         resource.attributes.putAll(datum.attributes.map { (key, value) ->
-            when (value) {
-                is List<*> -> key to value.toMutableList().trackChanges { _, list ->
+            when (val extracted = value.extractedContent) {
+                is List<*> -> key to extracted.toMutableList().trackChanges { _, list ->
                     resource.attributes.trackChange(key, null, list)
                 }
-                is Map<*, *> -> key to value.toMutableMap().trackChanges { _, _, map ->
+                is Map<*, *> -> key to extracted.toMutableMap().trackChanges { _, _, map ->
                     resource.attributes.trackChange(key, null, map)
                 }
-                else -> key to value
+                else -> key to extracted
             }
         })
         resource.attributes.clearChanges()
@@ -113,37 +115,40 @@ class Deserializer {
         cache[Pair(datum.type, datum.id)] = resource
 
         for ((key, relationship) in datum.relationships) {
-            val relationData = relationship?.data
-            if (relationData != null) {
-                val relatedResources = mutableListOf<Resource>()
+            val (relationData, isSingle) = when (val linkage = relationship.data) {
+                JsonApiLinkage.Missing,
+                JsonApiLinkage.EmptyToOne -> continue
+                is JsonApiLinkage.ToOne -> listOf(linkage.resource) to true
+                is JsonApiLinkage.ToMany -> linkage.resources to false
+            }
+            val relatedResources = mutableListOf<Resource>()
 
-                for (relationshipData in relationData) {
-                    val type = relationshipData.type
-                    val id = relationshipData.id
-                    val related = included[type to id]
-                    if (related != null) {
-                        val cached = cache.getOrElse(Pair(type, id)) {
-                            val resource = ResourceRegistry.createInstance(type)
-                            deserializeToResource(resource, related, included)
-                            resource
-                        }
-                        relatedResources.add(cached)
+            for (relationshipData in relationData) {
+                val type = relationshipData.type
+                val id = relationshipData.id
+                val related = included[type to id]
+                if (related != null) {
+                    val cached = cache.getOrElse(Pair(type, id)) {
+                        val resource = ResourceRegistry.createInstance(type)
+                        deserializeToResource(resource, related, included)
+                        resource
                     }
+                    relatedResources.add(cached)
                 }
+            }
 
-                if (relatedResources.size == 1 && relationship.isSingle) {
-                    resource.relationships[key] = relatedResources.first()
-                } else {
-                    resource.relationships[key] = relatedResources.trackChanges { _, list ->
-                        resource.relationships.trackChange(key, null, list)
-                    }
+            if (relatedResources.size == 1 && isSingle) {
+                resource.relationships[key] = relatedResources.first()
+            } else {
+                resource.relationships[key] = relatedResources.trackChanges { _, list ->
+                    resource.relationships.trackChange(key, null, list)
                 }
             }
         }
         resource.relationships.clearChanges()
 
-        resource.links.putAll(datum.links)
-        resource.meta.putAll(datum.meta)
+        resource.links.putAll(datum.links?.asMap().orEmpty())
+        resource.meta.putAll(datum.meta.mapValues { it.value.extractedContent })
 
         return resource
     }

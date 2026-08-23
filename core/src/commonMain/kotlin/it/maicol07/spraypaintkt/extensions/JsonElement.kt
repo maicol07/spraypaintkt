@@ -15,7 +15,6 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
-typealias JsonObjectMap = Map<String, Any>
 typealias JsonArrayList = List<JsonElement>
 
 /**

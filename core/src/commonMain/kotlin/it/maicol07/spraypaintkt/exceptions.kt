@@ -1,10 +1,7 @@
 package it.maicol07.spraypaintkt
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-
-private val json = Json { ignoreUnknownKeys = true }
+import kotlinx.serialization.json.JsonElement
 
 /**
  * An exception thrown by the JSON:API server.
@@ -22,7 +19,7 @@ class JsonApiException(
     /**
      * The errors returned by the server.
      */
-    val errors by lazy { json.decodeFromString<JsonApiErrorResponse>(body).errors }
+    val errors by lazy { jsonApiJson.decodeFromString<JsonApiErrorResponse>(body).errors }
 }
 
 /**
@@ -30,7 +27,10 @@ class JsonApiException(
  */
 @Serializable
 data class JsonApiErrorResponse(
-    val errors: List<JsonApiError>
+    val errors: List<JsonApiError>,
+    val meta: Map<String, JsonElement> = emptyMap(),
+    val links: JsonApiLinks? = null,
+    val jsonapi: JsonApiObject? = null,
 )
 
 /**
@@ -54,18 +54,20 @@ data class JsonApiError(
     val title: String? = null,
     val detail: String? = null,
     val source: Source? = null,
-    val meta: JsonObject? = null
+    val meta: Map<String, JsonElement>? = null
 ) {
     /**
      * An object containing references to the source of the error.
      *
      * @param pointer A JSON Pointer [RFC6901] to the associated entity in the request document [e.g. "/data" for a primary data object, or "/data/attributes/title" for a specific attribute].
      * @param parameter A string indicating which URI query parameter caused the error.
+     * @param header A string indicating which request header caused the error.
      */
     @Serializable
     data class Source(
         val pointer: String? = null,
-        val parameter: String? = null
+        val parameter: String? = null,
+        val header: String? = null,
     )
 
     /**
@@ -76,7 +78,7 @@ data class JsonApiError(
      */
     @Serializable
     data class Links(
-        val about: String? = null,
-        val type: String? = null
+        val about: JsonApiLink? = null,
+        val type: JsonApiLink? = null,
     )
 }

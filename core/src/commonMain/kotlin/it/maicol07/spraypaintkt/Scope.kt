@@ -73,7 +73,7 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
                 val response = try {
                     JsonApiSingleResponse.fromJsonApiString(e.body)
                 } catch (_: SerializationException) {
-                    JsonApiSingleResponse(emptyMap())
+                    JsonApiSingleResponse()
                 }
                 return RecordProxy(null, response.meta, response, e)
             }
@@ -322,10 +322,7 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
      * @param jsonResult The JSON:API response
      */
     private fun buildRecordResult(jsonResult: JsonApiSingleResponse): RecordProxy<R?> {
-        val data = jsonResult.data
-        if (data == null || data["id"] == null || data["type"] == null) {
-            return RecordProxy(null, jsonResult.meta, jsonResult)
-        }
+        val data = jsonResult.data ?: return RecordProxy(null, jsonResult.meta, jsonResult)
         val model = ResourceRegistry.createInstance(resourceClass)
         model.fromJsonApi(data, jsonResult.included)
         return RecordProxy(model, jsonResult.meta, jsonResult)

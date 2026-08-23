@@ -1,8 +1,6 @@
 package it.maicol07.spraypaintkt
 
 import it.maicol07.spraypaintkt.util.Deserializer
-import it.maicol07.spraypaintkt.extensions.JsonObjectMap
-import it.maicol07.spraypaintkt.extensions.extractedContent
 import it.maicol07.spraypaintkt.extensions.toJsonElement
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
@@ -12,7 +10,9 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.decodeFromJsonElement
 
 abstract class ResourceSerializer<R: Resource>: KSerializer<R> {
     override val descriptor = buildClassSerialDescriptor("Resource")
@@ -29,15 +29,13 @@ abstract class ResourceSerializer<R: Resource>: KSerializer<R> {
         val element = jsonDecoder.decodeJsonElement().let {
             if (it is JsonPrimitive && it.isString) Json.parseToJsonElement(it.content) else it
         }
-        @Suppress("UNCHECKED_CAST")
-        val responseMap = element.extractedContent as? JsonObjectMap
+        val responseObject = element as? JsonObject
             ?: throw SerializationException("Resource must be a JSON object")
 
-        val response = JsonApiSingleResponse(responseMap)
-        val resource = if (response.data == null) {
-            Deserializer().deserialize(JsonApiResource(responseMap))
+        val resource = if ("data" !in responseObject) {
+            Deserializer().deserialize(jsonApiJson.decodeFromJsonElement<JsonApiResource>(responseObject))
         } else {
-            Deserializer().deserialize(response)
+            Deserializer().deserialize(jsonApiJson.decodeFromJsonElement<JsonApiSingleResponse>(responseObject))
         }
 
         @Suppress("UNCHECKED_CAST") // We know it's a resource

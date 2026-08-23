@@ -1,5 +1,7 @@
 package it.maicol07.spraypaintkt
 
+import kotlinx.serialization.json.JsonElement
+
 /**
  * The direction of the sorting.
  */
@@ -37,11 +39,11 @@ data class ScopePagination(
  * @param R The type of the resource.
  * @param data The data of the collection.
  * @param meta The meta of the collection.
- * @param raw The raw JSON:API response as a map.
+ * @param raw The raw JSON:API response.
  */
 data class CollectionProxy<R: Resource>(
     val data: List<R>,
-    val meta: Map<String, Any>,
+    val meta: Map<String, JsonElement>,
     val raw: JsonApiCollectionResponse
 )
 
@@ -51,11 +53,11 @@ data class CollectionProxy<R: Resource>(
  * @param R The type of the resource.
  * @param data The data of the resource.
  * @param meta The meta of the resource.
- * @param raw The raw JSON:API response as a map.
+ * @param raw The raw JSON:API response.
  */
 data class RecordProxy<R>(
     val data: R,
-    val meta: Map<String, Any>,
+    val meta: Map<String, JsonElement>,
     val raw: JsonApiSingleResponse,
     val error: JsonApiException? = null
 )

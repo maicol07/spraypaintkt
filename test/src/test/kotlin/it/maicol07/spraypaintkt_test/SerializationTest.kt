@@ -1,17 +1,63 @@
 package it.maicol07.spraypaintkt_test
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.types.shouldBeInstanceOf
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldNotBeEmpty
+import io.kotest.assertions.throwables.shouldThrow
 import io.ktor.http.quote
+import it.maicol07.spraypaintkt.JsonApiCollectionResponse
+import it.maicol07.spraypaintkt.JsonApiErrorResponse
+import it.maicol07.spraypaintkt.JsonApiLink
+import it.maicol07.spraypaintkt.JsonApiLinkage
+import it.maicol07.spraypaintkt.JsonApiSingleResponse
 import it.maicol07.spraypaintkt.Resource
 import it.maicol07.spraypaintkt_test.models.Book
 import it.maicol07.spraypaintkt_test.models.BookGenre
 import it.maicol07.spraypaintkt_test.models.Publisher
 import it.maicol07.spraypaintkt_test.models.Review
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonPrimitive
 
 class SerializationTest : FunSpec({
+    test("JSON:API wrappers preserve typed JSON values") {
+        val response = JsonApiSingleResponse.fromJsonApiString(
+            """{"data":{"type":"Book","id":"1","attributes":{"title":"Dune"},"relationships":{"author":{"data":{"type":"Person","id":"2"}}}},"meta":{"count":1},"links":{"self":"/books/1","next":{"href":"/books?page=2","hreflang":["en","it"]}},"jsonapi":{"version":"1.1"}}""",
+        )
+
+        val data = response.data!!
+        val links = response.links!!
+        response.meta["count"]!!.jsonPrimitive.int shouldBe 1
+        data.attributes["title"]!!.jsonPrimitive.content shouldBe "Dune"
+        links.self shouldBe JsonApiLink.Simple("/books/1")
+        links.next.shouldBeInstanceOf<JsonApiLink.Details>().hreflang shouldBe listOf("en", "it")
+        data.relationships["author"]!!.data.shouldBeInstanceOf<JsonApiLinkage.ToOne>()
+        response.jsonapi!!.version shouldBe "1.1"
+        Json.decodeFromString<JsonApiSingleResponse>(Json.encodeToString(response)) shouldBe response
+
+        val errorResponse = Json.decodeFromString<JsonApiErrorResponse>(
+            """{"errors":[{"source":{"header":"Authorization"},"links":{"about":{"href":"/errors/1"}}}]}""",
+        )
+        errorResponse.errors.single().source!!.header shouldBe "Authorization"
+        errorResponse.errors.single().links!!.about.shouldBeInstanceOf<JsonApiLink.Details>().href shouldBe "/errors/1"
+    }
+
+    test("JSON:API wrappers reject invalid response shapes") {
+        shouldThrow<SerializationException> {
+            JsonApiCollectionResponse.fromJsonApiString("""{"data":{}}""")
+        }
+        shouldThrow<SerializationException> {
+            JsonApiSingleResponse.fromJsonApiString("""{"data":{"type":"Book","id":1}}""")
+        }
+        shouldThrow<SerializationException> {
+            JsonApiSingleResponse.fromJsonApiString(
+                """{"data":{"type":"Book","id":"1","relationships":{"author":{"data":{"type":"Author","id":1}}}}}""",
+            )
+        }
+    }
+
     test("serializationTest") {
         val book = Book()
         book.title = "book_title37"
