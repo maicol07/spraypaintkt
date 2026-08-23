@@ -28,7 +28,7 @@ Spraypaint.kt is a Kotlin Multiplatform JSON:API client. KSP generates concrete 
 ## Verification
 
 ```shell
-./gradlew :test:jvmKotest
+./gradlew :test:jvmKotest :processor:build :core:compileKotlinJs :core:compileKotlinWasmJs
 ./gradlew :sample:composeApp:compileKotlinJvm :sample:composeApp:compileKotlinJs :sample:composeApp:compileKotlinWasmJs
 ./gradlew :ktor-integration:assembleRelease
 ```
@@ -38,7 +38,10 @@ Inspect `ktor-integration/build/outputs/aar/*-release.aar!/AndroidManifest.xml` 
 ## Known issues / TODO
 
 - AGP 9 migration is pending. It requires `com.android.kotlin.multiplatform.library` for libraries and a separate Android application module for the Compose sample. Do this as one isolated migration, not piecemeal.
-- JSON response wrappers still expose `Map<String, Any?>`. Replace them with typed `JsonElement`-backed wire models in the next major release; it is a public breaking change.
+- JSON:API response wrappers use serializable wire DTOs in 3.0.0-rc1. Dynamic attributes and metadata use `Map<String, JsonElement>` and map to Kotlin values at the resource boundary.
 - Duplicate `resourceType` registrations intentionally resolve to the first registered schema for compatibility. A future major version should reject ambiguity or require an explicit discriminator.
 - Live tests mutate a third-party demo service and are not CI-safe. Replace them with a repository-owned local JSON:API test server before enabling them in CI.
 - iOS framework embedding cannot be executed on Windows; verify it in Xcode/macOS CI.
+- Snapshot publishing targets GitHub Packages only; Maven Central publishing is release-only.
+- An injected Ktor `HttpClient` is caller-owned and is not closed by `KtorHttpClient.close()`.
+- Dokkatoo 2.4 uses Dokka 1.9 and must run on JDK 21; JDK 25 fails inside Dokka's Java-version parser.

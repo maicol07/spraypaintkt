@@ -2,7 +2,7 @@
 
 > Inspired by [Spraypaint.JS](https://github.com/graphiti-api/spraypaint.js)
 
-Kotlin Multiplatformlibrary for interacting with JSON:API-compliant APIs, generated from annotated schemas with KSP.
+Kotlin Multiplatform library for interacting with JSON:API-compliant APIs, generated from annotated schemas with KSP.
 
 ## Modules
 
@@ -17,7 +17,7 @@ Kotlin Multiplatformlibrary for interacting with JSON:API-compliant APIs, genera
 Add the following to your `build.gradle.kts` file:
 ```kotlin
 plugins {
-    id("com.google.devtools.ksp") version "2.3.0"
+    id("com.google.devtools.ksp") version "2.3.4"
 }
 
 dependencies {
@@ -82,6 +82,10 @@ ghpr.key=TOKEN
 ```
 > [!NOTE]
 > More info can be found [here](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry#using-a-published-package)
+
+## 3.0.0 migration (RC1)
+
+The 3.0.0 release candidate contains breaking API changes. Follow the [migration guide](docs/migration-3.0.md) before upgrading.
 
 ## Configuration
 Create a configuration object that implements the `JsonApiConfig` interface and mark it with the `@DefaultInstance` annotation
@@ -376,11 +380,11 @@ You can configure the Ktor client by passing a `HttpClientConfig` instance to th
 data object AppJsonApiConfig: JsonApiConfig {
     override val baseUrl: String = "https://api.example.com"
     override val paginationStrategy: PaginationStrategy = PaginationStrategy.OFFSET_BASED
-    override val httpClient: HttpClient = KtorHttpClient {
+    override val httpClient: HttpClient = KtorHttpClient(httpClientOptions = {
         install(JsonFeature) {
             serializer = KotlinxSerializer()
         }
-    }
+    })
 }
 ```
 
@@ -394,7 +398,7 @@ data object AppJsonApiConfig: JsonApiConfig {
     override val baseUrl: String = "https://api.example.com"
     override val paginationStrategy: PaginationStrategy = PaginationStrategy.OFFSET_BASED
     override val httpClient: HttpClient = KtorHttpClient(
-        client = HttpClient {
+        httpClient = HttpClient {
             install(JsonFeature) {
                 serializer = KotlinxSerializer()
             }
