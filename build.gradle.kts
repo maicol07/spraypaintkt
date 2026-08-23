@@ -17,7 +17,7 @@ plugins {
     alias(libs.plugins.android.application).apply(false)
 }
 
-rootProject.extra.set("libVersion", System.getenv("LIB_VERSION") ?: "0.1.0")
+rootProject.extra.set("libVersion", System.getenv("LIB_VERSION") ?: "3.0.0-rc1")
 
 version = rootProject.extra.get("libVersion")!!
 
