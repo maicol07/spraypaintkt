@@ -16,21 +16,23 @@ jobs:
     runs-on: macos-14
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: 21
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-disabled: true
 
       - run: chmod +x ./gradlew
 
       - name: Build & Publish to Maven Central
-        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
+        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache --stacktrace
         env:
           LIB_VERSION: ${{ github.event.release.tag_name }}
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
@@ -40,7 +42,7 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_KEY_PASSPHRASE }}
 
       - name: Publish to GitHub Packages
-        run: ./gradlew publishAllPublicationsToGithubPackagesRepository
+        run: ./gradlew publishAllPublicationsToGithubPackagesRepository --no-configuration-cache --stacktrace
         env:
           LIB_VERSION: ${{ github.event.release.tag_name }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_ARMORED_PRIVATE_KEY }}
