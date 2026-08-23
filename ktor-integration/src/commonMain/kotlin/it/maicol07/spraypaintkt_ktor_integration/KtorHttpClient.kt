@@ -26,7 +26,7 @@ import it.maicol07.spraypaintkt.interfaces.HttpClientResponse
  *
  * @param engineFactory The engine factory to use for the HTTP client.
  * @param httpClientOptions The options to pass to the HTTP client.
- * @param httpClient The HTTP client to use. [engineFactory] and [httpClientOptions] will be ignored if this is provided. [engineFactory] will not be used if is null.
+ * @param httpClient An existing HTTP client to use. [engineFactory] and [httpClientOptions] are ignored when this is provided. The caller owns this client and remains responsible for closing it.
  */
 class KtorHttpClient(
     engineFactory: HttpClientEngineFactory<*>? = null,
@@ -36,11 +36,13 @@ class KtorHttpClient(
             contentType(VndApiJson)
         }
     },
-    private val httpClient: HttpClient = if (engineFactory == null) HttpClient(httpClientOptions) else HttpClient(
-        engineFactory,
-        httpClientOptions
-    )
+    httpClient: HttpClient? = null,
 ) : it.maicol07.spraypaintkt.interfaces.HttpClient {
+    private val httpClient = httpClient ?: if (engineFactory == null) HttpClient(httpClientOptions) else HttpClient(
+        engineFactory,
+        httpClientOptions,
+    )
+
     companion object {
         val VndApiJson = ContentType("application", "vnd.api+json")
     }
@@ -79,9 +81,7 @@ class KtorHttpClient(
 
     /** Closes the Ktor client. */
     @Suppress("unused")
-    fun close() {
-        httpClient.close()
-    }
+    fun close() = httpClient.close()
 
     private suspend fun getResponseObject(response: HttpResponse): HttpClientResponse {
         val responseBody = response.bodyAsText()
