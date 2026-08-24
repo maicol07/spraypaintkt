@@ -1,23 +1,22 @@
 import com.google.devtools.ksp.gradle.KspAATask
 import org.jetbrains.compose.ExperimentalComposeLibrary
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 
 plugins {
     alias(libs.plugins.multiplatform)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.compose)
-    alias(libs.plugins.android.application)
+    alias(libs.plugins.androidKmpLibrary)
     alias(libs.plugins.ksp)
 }
 
 kotlin {
-    androidTarget {
-        //https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-test.html
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
-        instrumentedTestVariant.sourceSetTree.set(KotlinSourceSetTree.test)
+    jvmToolchain(21)
+    android {
+        namespace = "it.maicol07.spraypaintkt.sample"
+        compileSdk = 37
+        minSdk = 26
     }
 
     jvm()
@@ -64,8 +63,7 @@ kotlin {
         }
 
         androidMain.dependencies {
-            implementation(compose.uiTooling)
-            implementation(libs.androidx.activityCompose)
+            implementation(libs.androidx.core.ktx)
             implementation(libs.ktor.client.cio)
         }
 
@@ -84,28 +82,6 @@ kotlin {
         }
 
     }
-}
-
-android {
-    namespace = "it.maicol07.spraypaintkt.sample"
-    compileSdk = 37
-
-    defaultConfig {
-        minSdk = 26
-        targetSdk = 36
-
-        applicationId = "it.maicol07.spraypaintkt.sample.androidApp"
-        versionCode = 1
-        versionName = "1.0.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-}
-
-//https://developer.android.com/develop/ui/compose/testing#setup
-dependencies {
-    androidTestImplementation(libs.androidx.uitest.junit4)
-    debugImplementation(libs.androidx.uitest.testManifest)
 }
 
 compose.desktop {

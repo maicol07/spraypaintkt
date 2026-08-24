@@ -33,14 +33,16 @@ Spraypaint.kt is a Kotlin Multiplatform JSON:API client. KSP generates concrete 
 ```shell
 ./gradlew :test:jvmKotest :processor:build :openapi-generator:jvmKotest :core:compileKotlinJs :core:compileKotlinWasmJs
 ./gradlew :sample:composeApp:compileKotlinJvm :sample:composeApp:compileKotlinJs :sample:composeApp:compileKotlinWasmJs
-./gradlew :ktor-integration:assembleRelease
+./gradlew :ktor-integration:assemble :sample:androidApp:assembleDebug
 ```
 
-Inspect `ktor-integration/build/outputs/aar/*-release.aar!/AndroidManifest.xml` after Android manifest changes. Its declared `minSdkVersion` must remain at least 4; the project value is 26, which prevents legacy implicit permission injection when `targetSdkVersion` is absent from a library AAR.
+Inspect `ktor-integration/build/outputs/aar/ktor-integration.aar!/AndroidManifest.xml` after Android manifest changes. Its declared `minSdkVersion` must remain at least 4; the project value is 26, which prevents legacy implicit permission injection when `targetSdkVersion` is absent from a library AAR.
 
 ## Known issues / TODO
 
-- AGP 9 migration is pending. The build runs on AGP 9.3 with `android.newDsl=false` and the other AGP 8 compatibility opt-outs in `gradle.properties`; KGP warns that `com.android.library` and `com.android.application` are no longer compatible with the multiplatform plugin. The real migration requires `com.android.kotlin.multiplatform.library` for libraries and a separate Android application module for the Compose sample. Do this as one isolated migration, not piecemeal. All the `android.*` opt-outs are removed in AGP 10.
+- The AGP 9 migration is done. Libraries use `com.android.kotlin.multiplatform.library` and configure Android inside `kotlin { android { } }`; no AGP 8 compatibility opt-out remains in `gradle.properties`.
+- The Android artifact is now single-variant. `publishLibraryVariants("release", "debug")` is gone and the two `androidDebug`/`androidRelease` publications collapse into one `android` publication. This changes the published coordinates for Android consumers and needs a release note.
+- `sample/composeApp` is a KMP library; `sample/androidApp` is the Android application that owns the manifest, the launcher resources and `AppActivity`. `App()` in `commonMain` is public because the app module consumes it across a project boundary.
 - Compose Multiplatform 1.11 dropped the `iosX64` and `macosX64` targets, so `sample/composeApp` no longer declares `iosX64()`. The libraries still publish those targets.
 - `macosX64` is deprecated in Kotlin 2.4 and warns at configuration time in `core`, `annotation` and `ktor-integration`.
 - The `compose.runtime` / `compose.material3` / `compose.html` Gradle DSL accessors are deprecated in Compose 1.11; declare the dependencies through the version catalog instead.

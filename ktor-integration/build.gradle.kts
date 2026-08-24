@@ -1,10 +1,9 @@
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
     kotlin("multiplatform")
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.androidKmpLibrary)
     alias(libs.plugins.mavenPublish)
     alias(libs.plugins.dokkatoo.html)
 }
@@ -14,12 +13,13 @@ version = rootProject.extra.get("libVersion")!!
 
 kotlin {
     jvmToolchain(21)
-    androidTarget {
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    android {
+        namespace = "it.maicol07.spraypaintkt_ktor_integration"
+        compileSdk = 37
+        minSdk = 26
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_21)
         }
-        publishLibraryVariants("release", "debug")
     }
     jvm()
     linuxX64()
@@ -57,17 +57,6 @@ kotlin {
     }
 }
 
-android {
-    namespace = "it.maicol07.spraypaintkt_ktor_integration"
-    compileSdk = 37
-    defaultConfig {
-        minSdk = 26
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-    }
-}
 
 
 mavenPublishing {

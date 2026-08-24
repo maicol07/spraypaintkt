@@ -7,7 +7,7 @@
         android:label="Sample Multiplatform App"
         android:theme="@android:style/Theme.Material.NoActionBar">
         <activity
-            android:name=".AppActivity"
+            android:name="it.maicol07.spraypaintkt.sample.AppActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

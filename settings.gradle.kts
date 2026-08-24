@@ -38,4 +38,5 @@ include(
     ":openapi-generator",
     ":test",
     ":sample:composeApp",
+    ":sample:androidApp",
 )

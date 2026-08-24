@@ -16,6 +16,7 @@ dependencies {
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.kotest.framework.engine)
     ksp(projects.processor)
+    kspTest(projects.processor)
     testImplementation(libs.kotlinx.serialization.json)
 }
 
@@ -23,4 +24,8 @@ java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(21))
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
+}
+
+kotest {
+    customGradleTask = true
 }

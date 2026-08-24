@@ -18,7 +18,7 @@ Kotlin Multiplatform library for interacting with JSON:API-compliant APIs, gener
 Add the following to your `build.gradle.kts` file:
 ```kotlin
 plugins {
-    id("com.google.devtools.ksp") version "2.3.4"
+    id("com.google.devtools.ksp") version "2.3.11"
 }
 
 dependencies {
@@ -32,8 +32,8 @@ dependencies {
 Add the following to your `build.gradle.kts` file:
 ```kotlin
 plugins {
-    kotlin("multiplatform") version "2.3.0"
-    id("com.google.devtools.ksp") version "2.3.4"
+    kotlin("multiplatform") version "2.4.10"
+    id("com.google.devtools.ksp") version "2.3.11"
 }
 
 kotlin {
@@ -59,6 +59,13 @@ kotlin.sourceSets.commonMain {
     kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
 }
 ```
+
+### Android artifacts
+Each library publishes a single Android artifact (`core-android`, `annotation-android`,
+`ktor-integration-android`), not one per build type. Depending on the root coordinates
+is enough — Gradle module metadata picks the Android variant. Only builds that pin
+`*-android-debug` or `*-android-release` need a change; see the
+[migration guide](docs/migration-3.0.md#android-artifacts).
 
 ### Snapshots
 You can find snapshots on [Github Packages](https://github.com/maicol07?tab=packages&repo_name=spraypaintkt).
@@ -438,6 +445,8 @@ RUN_LIVE_TESTS=true ./gradlew :test:jvmKotest
 ./gradlew :sample:composeApp:run
 ./gradlew :sample:composeApp:jsBrowserDevelopmentRun
 ./gradlew :sample:composeApp:wasmJsBrowserDevelopmentRun
+./gradlew :sample:androidApp:installDebug
 ```
 
-The iOS project is under `sample/iosApp`.
+`sample/composeApp` holds the shared Compose code. The platform entry points live
+in `sample/androidApp` (Android application) and `sample/iosApp` (Xcode project).
