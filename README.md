@@ -91,9 +91,9 @@ ghpr.key=TOKEN
 > [!NOTE]
 > More info can be found [here](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry#using-a-published-package)
 
-## 3.0.0 migration (RC1)
+## 3.0.0 migration
 
-The 3.0.0 release candidate contains breaking API changes. Follow the [migration guide](docs/migration-3.0.md) before upgrading.
+The 3.0.0 release candidates contain breaking API changes. Follow the [migration guide](docs/migration-3.0.md) before upgrading, including when moving from `3.0.0-rc1` to a later candidate.
 
 ## Configuration
 Create a configuration object that implements the `JsonApiConfig` interface and mark it with the `@DefaultInstance` annotation
