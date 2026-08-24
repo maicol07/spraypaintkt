@@ -60,7 +60,7 @@ version = rootProject.extra.get("libVersion")!!
 
 android {
     namespace = "it.maicol07.spraypaintkt_annotation"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         minSdk = 26
     }
@@ -71,7 +71,7 @@ android {
 }
 
 mavenPublishing {
-    publishToMavenCentral(validateDeployment = false)
+    publishToMavenCentral(validateDeployment = com.vanniktech.maven.publish.DeploymentValidation.NONE)
 
     signAllPublications()
     coordinates(group.toString(), name, version.toString())

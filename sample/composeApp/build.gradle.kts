@@ -34,7 +34,6 @@ kotlin {
     }
 
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64()
     ).forEach {
@@ -89,7 +88,7 @@ kotlin {
 
 android {
     namespace = "it.maicol07.spraypaintkt.sample"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 26

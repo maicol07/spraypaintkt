@@ -6,8 +6,8 @@ Spraypaint.kt is a Kotlin Multiplatform JSON:API client. KSP generates concrete 
 
 ## Stack
 
-- Kotlin 2.3, KSP 2.3, kotlinx.serialization.
-- Gradle 9.2 with Java 21 toolchains.
+- Kotlin 2.4, KSP 2.3.11, kotlinx.serialization.
+- Gradle 9.7 with Java 21 toolchains. AGP 9.3.
 - Ktor 3 for the optional HTTP adapter.
 - swagger-parser 2.1 + KotlinPoet for the JVM-only OpenAPI schema generator.
 - Compose Multiplatform / Material 3 for the sample.
@@ -22,7 +22,9 @@ Spraypaint.kt is a Kotlin Multiplatform JSON:API client. KSP generates concrete 
 - Public JSON/API input is untrusted. Validate shapes and throw specific serialization/protocol errors.
 - Keep generated code simple. Add one regression test in `test` for every processor or wire-format bug.
 - Tests are deterministic by default. Set `RUN_LIVE_TESTS=true` only for explicit integration runs against the demo API.
-- Java/Kotlin bytecode targets are 21. Android min SDK is 26 and compile/target SDK is 36.
+- Java/Kotlin bytecode targets are 21. Android min SDK is 26 and compile SDK is 37. Only `sample/composeApp` sets `targetSdk`, at 36; libraries deliberately leave it unset (`android.sdk.defaultTargetSdkToCompileSdkIfUnset=false`).
+- KSP only applies to the source set it is declared for. A test source set needs an explicit `kspTest(...)`.
+- Kotest 6 skips `jvmKotest` unless the module declares `kotest { customGradleTask = true }`. Without it the task is silently skipped and no test runs.
 - Do not log request/response bodies by default.
 - Do not commit generated `build` output, credentials or local SDK configuration.
 
@@ -38,7 +40,10 @@ Inspect `ktor-integration/build/outputs/aar/*-release.aar!/AndroidManifest.xml` 
 
 ## Known issues / TODO
 
-- AGP 9 migration is pending. It requires `com.android.kotlin.multiplatform.library` for libraries and a separate Android application module for the Compose sample. Do this as one isolated migration, not piecemeal.
+- AGP 9 migration is pending. The build runs on AGP 9.3 with `android.newDsl=false` and the other AGP 8 compatibility opt-outs in `gradle.properties`; KGP warns that `com.android.library` and `com.android.application` are no longer compatible with the multiplatform plugin. The real migration requires `com.android.kotlin.multiplatform.library` for libraries and a separate Android application module for the Compose sample. Do this as one isolated migration, not piecemeal. All the `android.*` opt-outs are removed in AGP 10.
+- Compose Multiplatform 1.11 dropped the `iosX64` and `macosX64` targets, so `sample/composeApp` no longer declares `iosX64()`. The libraries still publish those targets.
+- `macosX64` is deprecated in Kotlin 2.4 and warns at configuration time in `core`, `annotation` and `ktor-integration`.
+- The `compose.runtime` / `compose.material3` / `compose.html` Gradle DSL accessors are deprecated in Compose 1.11; declare the dependencies through the version catalog instead.
 - JSON:API response wrappers use serializable wire DTOs in 3.0.0-rc1. Dynamic attributes and metadata use `Map<String, JsonElement>` and map to Kotlin values at the resource boundary.
 - Duplicate `resourceType` registrations intentionally resolve to the first registered schema for compatibility. A future major version should reject ambiguity or require an explicit discriminator.
 - `JsonElement.extractedContent` narrows numbers by value, not by declared format, so an attribute is `Int` or `Long` depending on the payload. `openapi-generator` therefore ignores `format` and emits `Int`/`Float`; a typed numeric contract needs a core fix first.

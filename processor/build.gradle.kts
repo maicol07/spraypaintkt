@@ -22,7 +22,7 @@ dependencies {
 }
 
 mavenPublishing {
-    publishToMavenCentral(validateDeployment = false)
+    publishToMavenCentral(validateDeployment = com.vanniktech.maven.publish.DeploymentValidation.NONE)
 
     signAllPublications()
     coordinates(group.toString(), name, version.toString())

@@ -59,7 +59,7 @@ kotlin {
 
 android {
     namespace = "it.maicol07.spraypaintkt_ktor_integration"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         minSdk = 26
     }
@@ -71,7 +71,7 @@ android {
 
 
 mavenPublishing {
-    publishToMavenCentral(validateDeployment = false)
+    publishToMavenCentral(validateDeployment = com.vanniktech.maven.publish.DeploymentValidation.NONE)
 
     signAllPublications()
     coordinates(group.toString(), name, version.toString())

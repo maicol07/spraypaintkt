@@ -54,7 +54,7 @@ tasks.register<JavaExec>("generateSchemas") {
 }
 
 mavenPublishing {
-    publishToMavenCentral(validateDeployment = false)
+    publishToMavenCentral(validateDeployment = com.vanniktech.maven.publish.DeploymentValidation.NONE)
 
     signAllPublications()
     coordinates(group.toString(), name, version.toString())
@@ -94,4 +94,8 @@ publishing {
             credentials(PasswordCredentials::class)
         }
     }
+}
+
+kotest {
+    customGradleTask = true
 }
