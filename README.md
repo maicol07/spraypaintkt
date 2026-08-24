@@ -9,6 +9,7 @@ Kotlin Multiplatform library for interacting with JSON:API-compliant APIs, gener
 - `core`: resource model, queries, serialization and HTTP abstraction.
 - `annotation`: `@ResourceSchema`, `@Attr`, `@Relation` and `@DefaultInstance`.
 - `processor`: KSP resource generator.
+- `openapi-generator`: writes resource schemas from a JSON:API OpenAPI document (see [docs/openapi-generation.md](docs/openapi-generation.md)).
 - `ktor-integration`: Ktor implementation of the HTTP abstraction.
 
 ## Installation
@@ -245,6 +246,18 @@ ResourcesRegistry.registerResources()
 From now on, resources are automatically generated during the build process when schemas have been changed and you should use these classes to interact with the API.
 These classes implement the resource schema interfaces you defined and they are named like your schema interface without the `Schema` suffix
 and they have the same package as the schema interface.
+
+If the API publishes a JSON:API-flavoured OpenAPI document, the schemas themselves can be written for you:
+
+```shell
+./gradlew :openapi-generator:generateSchemas \
+  -Pinput=https://api.example.com/openapi.yaml \
+  -Ppackage=com.example.models \
+  -Poutput=app/src/commonMain/kotlin
+```
+
+Both the `enum`/`const`-pinned encoding (jsonapi.rb, Elide, Drupal) and API Platform's are detected automatically.
+See [docs/openapi-generation.md](docs/openapi-generation.md) for the document shapes it expects and the type mapping it applies.
 
 ### Querying
 ```kotlin

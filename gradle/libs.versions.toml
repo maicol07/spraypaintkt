@@ -6,6 +6,7 @@ kasechange = "1.4.1"
 kotlin = "2.3.0"
 kotlinpoetKsp = "2.2.0"
 kotlinxSerializationJson = "1.9.0"
+swaggerParser = "2.1.47"
 ktor = "3.3.3"
 logbackClassic = "1.5.23"
 mavenPublish = "0.35.0"
@@ -22,7 +23,9 @@ androidx-uiTest = "1.10.0"
 auto-service-annotations = { module = "com.google.auto.service:auto-service-annotations", version.ref = "autoServiceAnnotations" }
 auto-service-ksp = { module = "dev.zacsweers.autoservice:auto-service-ksp", version.ref = "autoServiceKsp" }
 kasechange = { module = "net.pearx.kasechange:kasechange", version.ref = "kasechange" }
+kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "kotlinpoetKsp" }
 kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "kotlinpoetKsp" }
+swagger-parser = { module = "io.swagger.parser.v3:swagger-parser", version.ref = "swaggerParser" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }

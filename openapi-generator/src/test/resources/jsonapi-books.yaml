@@ -1,0 +1,131 @@
+openapi: 3.0.3
+info:
+  title: Books
+  version: "1.0"
+paths:
+  /openapi-books:
+    get:
+      responses:
+        "200":
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/BookCollection"
+  /openapi-people:
+    get:
+      responses:
+        "200":
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Person"
+components:
+  schemas:
+    BookCollection:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Book"
+    Book:
+      type: object
+      required: [type, attributes]
+      properties:
+        type:
+          type: string
+          enum: [OpenApiBook]
+        id:
+          type: string
+        attributes:
+          type: object
+          required: [title, page_count]
+          properties:
+            title:
+              type: string
+            page_count:
+              type: integer
+            publisher_id:
+              type: integer
+              format: int64
+            rating:
+              type: number
+            published:
+              type: boolean
+            tags:
+              type: array
+              items:
+                type: string
+            metadata:
+              type: object
+        relationships:
+          type: object
+          required: [author]
+          properties:
+            author:
+              type: object
+              properties:
+                data:
+                  $ref: "#/components/schemas/PersonIdentifier"
+            reader:
+              type: object
+              properties:
+                data:
+                  $ref: "#/components/schemas/PersonIdentifier"
+            reviews:
+              type: object
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/ReviewIdentifier"
+    Person:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [OpenApiPerson]
+        id:
+          type: string
+        attributes:
+          type: object
+          required: [name]
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+    Review:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [OpenApiReview]
+        id:
+          type: string
+        attributes:
+          type: object
+          properties:
+            body:
+              type: string
+    PersonIdentifier:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [OpenApiPerson]
+        id:
+          type: string
+    ReviewIdentifier:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [OpenApiReview]
+        id:
+          type: string

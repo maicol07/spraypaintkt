@@ -2,13 +2,14 @@
 
 ## Summary
 
-Spraypaint.kt is a Kotlin Multiplatform JSON:API client. KSP generates concrete resources from annotated schemas. `core` owns the model/query protocol, `annotation` exposes schema annotations, `processor` generates models, `ktor-integration` adapts Ktor, and `sample/composeApp` exercises Android, JVM, iOS, JS and Wasm.
+Spraypaint.kt is a Kotlin Multiplatform JSON:API client. KSP generates concrete resources from annotated schemas. `core` owns the model/query protocol, `annotation` exposes schema annotations, `processor` generates models, `openapi-generator` writes schemas from a JSON:API OpenAPI document, `ktor-integration` adapts Ktor, and `sample/composeApp` exercises Android, JVM, iOS, JS and Wasm.
 
 ## Stack
 
 - Kotlin 2.3, KSP 2.3, kotlinx.serialization.
 - Gradle 9.2 with Java 21 toolchains.
 - Ktor 3 for the optional HTTP adapter.
+- swagger-parser 2.1 + KotlinPoet for the JVM-only OpenAPI schema generator.
 - Compose Multiplatform / Material 3 for the sample.
 - Kotest JVM tests.
 
@@ -28,7 +29,7 @@ Spraypaint.kt is a Kotlin Multiplatform JSON:API client. KSP generates concrete 
 ## Verification
 
 ```shell
-./gradlew :test:jvmKotest :processor:build :core:compileKotlinJs :core:compileKotlinWasmJs
+./gradlew :test:jvmKotest :processor:build :openapi-generator:jvmKotest :core:compileKotlinJs :core:compileKotlinWasmJs
 ./gradlew :sample:composeApp:compileKotlinJvm :sample:composeApp:compileKotlinJs :sample:composeApp:compileKotlinWasmJs
 ./gradlew :ktor-integration:assembleRelease
 ```
@@ -40,6 +41,9 @@ Inspect `ktor-integration/build/outputs/aar/*-release.aar!/AndroidManifest.xml` 
 - AGP 9 migration is pending. It requires `com.android.kotlin.multiplatform.library` for libraries and a separate Android application module for the Compose sample. Do this as one isolated migration, not piecemeal.
 - JSON:API response wrappers use serializable wire DTOs in 3.0.0-rc1. Dynamic attributes and metadata use `Map<String, JsonElement>` and map to Kotlin values at the resource boundary.
 - Duplicate `resourceType` registrations intentionally resolve to the first registered schema for compatibility. A future major version should reject ambiguity or require an explicit discriminator.
+- `JsonElement.extractedContent` narrows numbers by value, not by declared format, so an attribute is `Int` or `Long` depending on the payload. `openapi-generator` therefore ignores `format` and emits `Int`/`Float`; a typed numeric contract needs a core fix first.
+- There is no standard OpenAPI description of JSON:API, so `openapi-generator` detects one of two dialects: `type` pinned via `enum`/`const` (jsonapi.rb, Elide, Drupal), or `type` free-form with the resource type in the component name (API Platform). Flat REST documents carry no relationship information and are rejected rather than half-generated.
+- Under the API Platform dialect, relationship targets fall back to the envelope's `included` list and then to a name match. Both are heuristics; a resource with several relationships needs a manual check.
 - Live tests mutate a third-party demo service and are not CI-safe. Replace them with a repository-owned local JSON:API test server before enabling them in CI.
 - iOS framework embedding cannot be executed on Windows; verify it in Xcode/macOS CI.
 - Snapshot publishing targets GitHub Packages only; Maven Central publishing is release-only.

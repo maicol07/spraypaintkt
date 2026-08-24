@@ -35,6 +35,7 @@ include(
     ":ktor-integration",
     ":annotation",
     ":processor",
+    ":openapi-generator",
     ":test",
     ":sample:composeApp",
 )
