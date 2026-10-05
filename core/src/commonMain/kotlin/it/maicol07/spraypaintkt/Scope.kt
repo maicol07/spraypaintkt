@@ -110,7 +110,16 @@ class Scope<R: Resource>(private val resourceClass: KClass<R>, options: Scope<R>
 
         try {
             val json = sendRequest(resourceCompanion.urlForResource())
-            return buildRecordResult(JsonApiSingleResponse.fromJsonApiString(json))
+            val response = JsonApiCollectionResponse.fromJsonApiString(json)
+            return buildRecordResult(
+                JsonApiSingleResponse(
+                    data = response.data.firstOrNull(),
+                    meta = response.meta,
+                    links = response.links,
+                    included = response.included,
+                    jsonapi = response.jsonapi,
+                )
+            )
         } finally {
             pagination.size = oldSize
             pagination.limit = oldLimit

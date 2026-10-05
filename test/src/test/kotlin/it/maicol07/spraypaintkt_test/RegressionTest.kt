@@ -1,5 +1,6 @@
 package it.maicol07.spraypaintkt_test
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -15,6 +16,7 @@ import it.maicol07.spraypaintkt_test.models.RelationOptions
 import it.maicol07.spraypaintkt_test.models.Review
 import it.maicol07.spraypaintkt_test.models.StubResponse
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 
@@ -63,6 +65,42 @@ class RegressionTest : FunSpec({
         NetworkResource.order("name").order("id", SortDirection.DESC).all()
 
         RecordingHttpClient.lastParameters["sort"] shouldBe "name,-id"
+    }
+
+    test("first and last queries handle empty and populated collections") {
+        RecordingHttpClient.response = StubResponse(
+            200,
+            """{"links":{"self":"/api/library_entries"},"meta":{"totalItems":0},"data":[]}"""
+        )
+        val scope = NetworkResource.scope().limit(30).order("name")
+        val empty = scope.firstOrNull()
+        empty.data shouldBe null
+        empty.meta["totalItems"] shouldBe JsonPrimitive(0)
+        empty.raw.links?.self?.href shouldBe "/api/library_entries"
+        RecordingHttpClient.lastParameters["page[limit]"] shouldBe "1"
+        scope.pagination.limit shouldBe 30
+        scope.exists() shouldBe false
+        scope.lastOrNull().data shouldBe null
+        scope.sort["name"] shouldBe SortDirection.ASC
+        shouldThrow<NoSuchElementException> { scope.first() }
+        shouldThrow<NoSuchElementException> { scope.last() }
+
+        RecordingHttpClient.response = StubResponse(
+            200,
+            """
+            {"data":[
+                {"type":"network-resource","id":"1","attributes":{"name":"first"}},
+                {"type":"network-resource","id":"2","attributes":{"name":"second"}}
+            ]}
+            """.trimIndent()
+        )
+        scope.firstOrNull().data?.name shouldBe "first"
+        scope.first().data.id shouldBe "1"
+        scope.lastOrNull().data?.id shouldBe "1"
+        scope.last().data.id shouldBe "1"
+        scope.exists() shouldBe true
+        scope.pagination.limit shouldBe 30
+        scope.sort["name"] shouldBe SortDirection.ASC
     }
 
     test("accepted writes succeed and clear dirty state") {
