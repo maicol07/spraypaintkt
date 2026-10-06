@@ -7,4 +7,11 @@ import it.maicol07.spraypaintkt_annotation.ResourceSchema
 interface RelationOptionsSchema {
     @Relation(name = "published_books", mutable = false, autoTransform = false)
     val books: List<BookSchema>
+
+    @Relation
+    val optionalBooks: List<BookSchema>?
+
+    @Relation
+    val defaultBooks: List<BookSchema>
+        get() = emptyList()
 }

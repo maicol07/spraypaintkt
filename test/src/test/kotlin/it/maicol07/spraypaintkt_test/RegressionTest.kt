@@ -44,6 +44,53 @@ class RegressionTest : FunSpec({
         shouldThrow<ClassCastException> { book.genre }
     }
 
+    test("default to-many relationships retain mutations and serialize dirty linkage") {
+        val review = Review().apply { id = "review-1" }
+        val book = Book()
+        val reviews = book.reviews
+        book.relationships.getChanges() shouldBe emptyMap()
+        reviews.add(review)
+        book.reviews shouldBe listOf(review)
+        book.relationships.getChanges()["reviews"] shouldBe listOf(review)
+        val linkage = Json.parseToJsonElement(book.toJsonApiString(onlyDirty = true))
+            .jsonObject["data"]!!.jsonObject["relationships"]!!.jsonObject["reviews"]!!.jsonObject["data"]!!.jsonArray
+        linkage.single().jsonObject["id"] shouldBe JsonPrimitive("review-1")
+    }
+
+    test("assigned and constructor to-many lists track subsequent mutations") {
+        val review = Review().apply { id = "review-1" }
+        for (book in listOf(
+            Book(reviews = mutableListOf()),
+            Book().apply { reviews = mutableListOf() },
+        )) {
+            book.relationships.clearChanges()
+            book.reviews.add(review)
+            book.relationships.getChanges()["reviews"] shouldBe listOf(review)
+            book.relationships.clearChanges()
+            book.reviews.clear()
+            book.relationships.getChanges()["reviews"] shouldBe emptyList<Review>()
+        }
+        val readOnly = RelationOptions(books = listOf(Book().apply { id = "book-1" }))
+        readOnly.books shouldHaveSize 1
+    }
+
+    test("nullable and schema-default to-many lists track mutations") {
+        val book = Book().apply { id = "book-1" }
+        val model = RelationOptions()
+        model.optionalBooks shouldBe null
+        model.optionalBooks = mutableListOf()
+        model.relationships.clearChanges()
+        model.optionalBooks!!.add(book)
+        model.relationships.getChanges()["optional_books"] shouldBe listOf(book)
+        model.optionalBooks = null
+        model.optionalBooks shouldBe null
+        model.relationships.getChanges()["optional_books"] shouldBe null
+        model.relationships.clearChanges()
+        model.defaultBooks.add(book)
+        model.defaultBooks shouldBe listOf(book)
+        model.relationships.getChanges()["default_books"] shouldBe listOf(book)
+    }
+
     test("explicit null clears a to-one relationship while missing linkage preserves it") {
         val publisher = Publisher().apply { id = "publisher-1" }
         val book = Book(publisher = publisher)

@@ -489,17 +489,24 @@ class ResourceSchemaProcessor(
                         .addStatement("relationships[%S] as %T", relationName, realType)
                         .nextControlFlow("else")
                         .addStatement(
-                            if (!property.isAbstract()) {
-                                if (isToMany) "(super.$propertyName as %T).%M()"
-                                else "super.$propertyName"
-                            } else (if (isToMany) {
-                                if (realType.isNullable) "null" else "mutableListOf<%T>().%M()"
-                            } else {
-                                if (realType.isNullable) "null" else
-                                    "throw NoSuchElementException(\"$propertyName not found\")"
-                            }),
-                            if (!property.isAbstract() && isToMany) realType else resourceTypeName,
-                            MemberName("it.maicol07.spraypaintkt.extensions.", "trackChanges")
+                            "%L",
+                            when {
+                                isToMany && (!property.isAbstract() || !realType.isNullable) -> trackedRelationship(
+                                    if (property.isAbstract()) CodeBlock.of("mutableListOf<%T>()", resourceTypeName)
+                                    else CodeBlock.of(
+                                        "(super.%N as %T)",
+                                        propertyName,
+                                        List::class.asClassName().parameterizedBy(resourceTypeName)
+                                            .copy(nullable = realType.isNullable),
+                                    ),
+                                    relationName,
+                                    realType.isNullable,
+                                )
+
+                                !property.isAbstract() -> CodeBlock.of("super.%N", propertyName)
+                                realType.isNullable -> CodeBlock.of("null")
+                                else -> CodeBlock.of("throw NoSuchElementException(%S)", "$propertyName not found")
+                            },
                         )
                         .endControlFlow()
                         .build()
@@ -509,14 +516,19 @@ class ResourceSchemaProcessor(
                         it.setter(
                             FunSpec.setterBuilder()
                                 .addParameter("value", realType)
-                                .addStatement("relationships[%S] = value", relationName)
+                                .addStatement(
+                                    "relationships[%S] = %L",
+                                    relationName,
+                                    if (isToMany) trackedRelationship(CodeBlock.of("value"), relationName, realType.isNullable)
+                                    else CodeBlock.of("value"),
+                                )
                                 .build()
                         )
                     } else it
                 }
                 .addModifiers(KModifier.OVERRIDE)
                 .build()
-            PropertyInfo(spec, relationName, false)
+            PropertyInfo(spec, relationName, false, isToMany = isToMany)
         }
         .filterNotNull()
         .toList()
@@ -602,6 +614,16 @@ class ResourceSchemaProcessor(
             }
     }
 
+    private fun trackedRelationship(value: CodeBlock, name: String, nullable: Boolean): CodeBlock {
+        val tracked = CodeBlock.of(
+            "%L.toMutableList().%M { _, list -> relationships[%S] = list }",
+            if (nullable) CodeBlock.of("it") else value,
+            MemberName("it.maicol07.spraypaintkt.extensions", "trackChanges"),
+            name,
+        )
+        return if (nullable) CodeBlock.of("%L?.let { %L }", value, tracked) else tracked
+    }
+
     private fun generateConstructor(properties: List<PropertyInfo>): FunSpec {
         val builder = FunSpec.constructorBuilder()
 
@@ -621,10 +643,14 @@ class ResourceSchemaProcessor(
                 CodeBlock.builder()
                     .beginControlFlow("if (%N != null)", paramName)
                     .addStatement(
-                        if (property.isEnum) "%N[%S] = %N.name" else "%N[%S] = %N",
+                        "%N[%S] = %L",
                         mapName,
                         property.jsonName,
-                        paramName,
+                        when {
+                            property.isEnum -> CodeBlock.of("%N.name", paramName)
+                            property.isToMany -> trackedRelationship(CodeBlock.of("%N", paramName), property.jsonName, false)
+                            else -> CodeBlock.of("%N", paramName)
+                        },
                     )
                     .endControlFlow()
                     .build()
@@ -639,6 +665,7 @@ class ResourceSchemaProcessor(
         val jsonName: String,
         val isAttribute: Boolean,
         val isEnum: Boolean = false,
+        val isToMany: Boolean = false,
     )
 
     private data class ResourceSchemaInfo(
