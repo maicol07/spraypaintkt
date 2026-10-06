@@ -5,12 +5,17 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.HttpClientEngineFactory
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.cio.CIOEngineConfig
 import it.maicol07.spraypaintkt.JsonApiResource
 import it.maicol07.spraypaintkt.JsonApiSingleResponse
 import it.maicol07.spraypaintkt.SortDirection
 import it.maicol07.spraypaintkt.extensions.trackChanges
 import it.maicol07.spraypaintkt.util.Deserializer
 import it.maicol07.spraypaintkt.util.pluralize
+import it.maicol07.spraypaintkt_ktor_integration.KtorHttpClient
 import it.maicol07.spraypaintkt_test.models.Book
 import it.maicol07.spraypaintkt_test.models.BookGenre
 import it.maicol07.spraypaintkt_test.models.NetworkResource
@@ -19,6 +24,7 @@ import it.maicol07.spraypaintkt_test.models.RecordingHttpClient
 import it.maicol07.spraypaintkt_test.models.RelationOptions
 import it.maicol07.spraypaintkt_test.models.Review
 import it.maicol07.spraypaintkt_test.models.StubResponse
+import kotlinx.coroutines.Job
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -132,6 +138,34 @@ class RegressionTest : FunSpec({
         shouldThrow<SerializationException> { NetworkResource.all() }
         RecordingHttpClient.response = StubResponse(200, """{"data":{"type":"Book","id":"1"}}""")
         shouldThrow<SerializationException> { NetworkResource.findOrNull("1") }
+    }
+
+    test("closing a Ktor adapter preserves a caller-owned client") {
+        val client = HttpClient(CIO)
+        try {
+            val adapter = KtorHttpClient(httpClient = client)
+            adapter.close()
+            adapter.close()
+            client.coroutineContext[Job]!!.isActive shouldBe true
+        } finally {
+            client.close()
+        }
+        client.coroutineContext[Job]!!.isActive shouldBe false
+    }
+
+    test("closing a Ktor adapter closes its own client engine") {
+        val engine = CIO.create()
+        val adapter = KtorHttpClient(
+            engineFactory = object : HttpClientEngineFactory<CIOEngineConfig> {
+                override fun create(block: CIOEngineConfig.() -> Unit) = engine
+            }
+        )
+        try {
+            adapter.close()
+            engine.coroutineContext[Job]!!.isActive shouldBe false
+        } finally {
+            engine.close()
+        }
     }
 
     test("pluralization preserves irregular and suffix rules") {

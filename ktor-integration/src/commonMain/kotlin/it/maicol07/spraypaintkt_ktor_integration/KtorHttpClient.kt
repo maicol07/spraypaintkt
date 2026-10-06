@@ -38,6 +38,7 @@ class KtorHttpClient(
     },
     httpClient: HttpClient? = null,
 ) : it.maicol07.spraypaintkt.interfaces.HttpClient {
+    private val ownsHttpClient = httpClient == null
     private val httpClient = httpClient ?: if (engineFactory == null) HttpClient(httpClientOptions) else HttpClient(
         engineFactory,
         httpClientOptions,
@@ -79,9 +80,11 @@ class KtorHttpClient(
         return sendRequest(HttpMethod.Delete, url, parameters)
     }
 
-    /** Closes the Ktor client. */
+    /** Closes the Ktor client if this adapter created it. */
     @Suppress("unused")
-    fun close() = httpClient.close()
+    fun close() {
+        if (ownsHttpClient) httpClient.close()
+    }
 
     private suspend fun getResponseObject(response: HttpResponse): HttpClientResponse {
         val responseBody = response.bodyAsText()
