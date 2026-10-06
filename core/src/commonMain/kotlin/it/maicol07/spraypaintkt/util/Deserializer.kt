@@ -1,12 +1,16 @@
 package it.maicol07.spraypaintkt.util
 
+import it.maicol07.spraypaintkt.JsonApiLinkage
 import it.maicol07.spraypaintkt.JsonApiResource
 import it.maicol07.spraypaintkt.JsonApiSingleResponse
-import it.maicol07.spraypaintkt.JsonApiLinkage
 import it.maicol07.spraypaintkt.Resource
 import it.maicol07.spraypaintkt.ResourceRegistry
 import it.maicol07.spraypaintkt.extensions.extractedContent
 import it.maicol07.spraypaintkt.extensions.trackChanges
+import kotlinx.serialization.SerializationException
+
+private fun JsonApiSingleResponse.requireData(): JsonApiResource =
+    data ?: throw SerializationException("JSON:API response does not contain a resource")
 
 /**
  * Deserializer for JSON:API resources.
@@ -51,7 +55,7 @@ class Deserializer {
      * @return The deserialized [Resource] object.
      */
     fun deserialize(jsonApiResponse: JsonApiSingleResponse): Resource {
-        return deserialize(jsonApiResponse.data!!, jsonApiResponse.included)
+        return deserialize(jsonApiResponse.requireData(), jsonApiResponse.included)
     }
 
     /**
@@ -74,7 +78,7 @@ class Deserializer {
      * @return The deserialized [Resource] object.
      */
     fun <R: Resource> deserializeToResource(resource: R, jsonApiResponse: JsonApiSingleResponse): R {
-        return deserializeToResource(resource, jsonApiResponse.data!!, jsonApiResponse.included)
+        return deserializeToResource(resource, jsonApiResponse.requireData(), jsonApiResponse.included)
     }
 
     /**
@@ -96,6 +100,9 @@ class Deserializer {
         included: Map<Pair<String, String>, JsonApiResource>,
     ): R {
 //        Logger.d("Deserializer") { "Deserializing ${model.type} with id ${datum.id}" }
+        if (datum.type != resource.type) {
+            throw SerializationException("Expected resource type ${resource.type}, received ${datum.type}")
+        }
         resource.id = datum.id
         resource.isPersisted = true
 
@@ -153,3 +160,4 @@ class Deserializer {
         return resource
     }
 }
+

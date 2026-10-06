@@ -5,8 +5,11 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import it.maicol07.spraypaintkt.JsonApiResource
+import it.maicol07.spraypaintkt.JsonApiSingleResponse
 import it.maicol07.spraypaintkt.SortDirection
 import it.maicol07.spraypaintkt.extensions.trackChanges
+import it.maicol07.spraypaintkt.util.Deserializer
 import it.maicol07.spraypaintkt.util.pluralize
 import it.maicol07.spraypaintkt_test.models.Book
 import it.maicol07.spraypaintkt_test.models.BookGenre
@@ -15,6 +18,7 @@ import it.maicol07.spraypaintkt_test.models.RecordingHttpClient
 import it.maicol07.spraypaintkt_test.models.RelationOptions
 import it.maicol07.spraypaintkt_test.models.Review
 import it.maicol07.spraypaintkt_test.models.StubResponse
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
@@ -23,6 +27,30 @@ import kotlinx.serialization.json.jsonObject
 class RegressionTest : FunSpec({
     test("constructor stores enum wire value") {
         Book(genre = BookGenre.FANTASY).genre shouldBe BookGenre.FANTASY
+    }
+
+    test("deserializing a null resource reports a serialization error without changing the target") {
+        val response = JsonApiSingleResponse(data = null)
+        shouldThrow<SerializationException> { Deserializer().deserialize(response) }
+        val book = Book(title = "original").apply { id = "original-id" }
+        shouldThrow<SerializationException> { book.fromJsonApiResponse(response) }
+        book.id shouldBe "original-id"
+        book.title shouldBe "original"
+    }
+
+    test("resource type mismatches are rejected before modifying models") {
+        val book = Book(title = "original").apply { id = "original-id" }
+        shouldThrow<SerializationException> {
+            book.fromJsonApi(JsonApiResource(id = "other", type = "Publisher"))
+        }
+        book.id shouldBe "original-id"
+        book.title shouldBe "original"
+
+        RecordingHttpClient.response = StubResponse(200, """{"data":[{"type":"Book","id":"1"}]}""")
+        shouldThrow<SerializationException> { NetworkResource.firstOrNull() }
+        shouldThrow<SerializationException> { NetworkResource.all() }
+        RecordingHttpClient.response = StubResponse(200, """{"data":{"type":"Book","id":"1"}}""")
+        shouldThrow<SerializationException> { NetworkResource.findOrNull("1") }
     }
 
     test("pluralization preserves irregular and suffix rules") {
