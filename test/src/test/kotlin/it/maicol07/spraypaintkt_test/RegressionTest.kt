@@ -14,6 +14,7 @@ import it.maicol07.spraypaintkt.util.pluralize
 import it.maicol07.spraypaintkt_test.models.Book
 import it.maicol07.spraypaintkt_test.models.BookGenre
 import it.maicol07.spraypaintkt_test.models.NetworkResource
+import it.maicol07.spraypaintkt_test.models.Publisher
 import it.maicol07.spraypaintkt_test.models.RecordingHttpClient
 import it.maicol07.spraypaintkt_test.models.RelationOptions
 import it.maicol07.spraypaintkt_test.models.Review
@@ -27,6 +28,25 @@ import kotlinx.serialization.json.jsonObject
 class RegressionTest : FunSpec({
     test("constructor stores enum wire value") {
         Book(genre = BookGenre.FANTASY).genre shouldBe BookGenre.FANTASY
+    }
+
+    test("explicit null clears a to-one relationship while missing linkage preserves it") {
+        val publisher = Publisher().apply { id = "publisher-1" }
+        val book = Book(publisher = publisher)
+        book.fromJsonApiResponse(
+            JsonApiSingleResponse.fromJsonApiString(
+                """{"data":{"type":"Book","id":"1","relationships":{"publisher":{"links":{"related":"/publishers"}}}}}"""
+            )
+        )
+        book.publisher shouldBe publisher
+        book.fromJsonApiResponse(
+            JsonApiSingleResponse.fromJsonApiString(
+                """{"data":{"type":"Book","id":"1","relationships":{"publisher":{"data":null}}}}"""
+            )
+        )
+        book.relationships.containsKey("publisher") shouldBe true
+        book.relationships["publisher"] shouldBe null
+        book.relationships.getChanges() shouldBe emptyMap()
     }
 
     test("deserializing a null resource reports a serialization error without changing the target") {

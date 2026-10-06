@@ -123,8 +123,12 @@ class Deserializer {
 
         for ((key, relationship) in datum.relationships) {
             val (relationData, isSingle) = when (val linkage = relationship.data) {
-                JsonApiLinkage.Missing,
-                JsonApiLinkage.EmptyToOne -> continue
+                JsonApiLinkage.Missing -> continue
+                JsonApiLinkage.EmptyToOne -> {
+                    resource.relationships[key] = null
+                    continue
+                }
+
                 is JsonApiLinkage.ToOne -> listOf(linkage.resource) to true
                 is JsonApiLinkage.ToMany -> linkage.resources to false
             }
@@ -160,4 +164,3 @@ class Deserializer {
         return resource
     }
 }
-
