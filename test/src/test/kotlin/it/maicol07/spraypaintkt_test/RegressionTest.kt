@@ -30,6 +30,20 @@ class RegressionTest : FunSpec({
         Book(genre = BookGenre.FANTASY).genre shouldBe BookGenre.FANTASY
     }
 
+    test("nullable enums support explicit null values") {
+        val book = Book(genre = BookGenre.FANTASY)
+        book.genre = null
+        book.genre shouldBe null
+        book.fromJsonApiResponse(
+            JsonApiSingleResponse.fromJsonApiString(
+                """{"data":{"type":"Book","id":"1","attributes":{"genre":null}}}"""
+            )
+        )
+        book.genre shouldBe null
+        book.attributes["genre"] = 1
+        shouldThrow<ClassCastException> { book.genre }
+    }
+
     test("explicit null clears a to-one relationship while missing linkage preserves it") {
         val publisher = Publisher().apply { id = "publisher-1" }
         val book = Book(publisher = publisher)

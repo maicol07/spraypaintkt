@@ -339,9 +339,22 @@ class ResourceSchemaProcessor(
                             .addCode("return ")
                             .beginControlFlow("if (attributes.containsKey(%S))", attributeName)
                             .addStatement(
-                                if (isEnum) "%T.valueOf(attributes[%S] as String)" else "attributes[%S] as %T",
-                                if (isEnum) property.type.toTypeName().copy(false) else attributeName,
-                                if (isEnum) attributeName else property.type.toTypeName()
+                                "%L",
+                                when {
+                                    isEnum && propertyType.isMarkedNullable -> CodeBlock.of(
+                                        "(attributes[%S] as String?)?.let { %T.valueOf(it) }",
+                                        attributeName,
+                                        property.type.toTypeName().copy(false),
+                                    )
+
+                                    isEnum -> CodeBlock.of(
+                                        "%T.valueOf(attributes[%S] as String)",
+                                        property.type.toTypeName(),
+                                        attributeName,
+                                    )
+
+                                    else -> CodeBlock.of("attributes[%S] as %T", attributeName, property.type.toTypeName())
+                                },
                             )
                             .nextControlFlow("else")
                             .addStatement(
