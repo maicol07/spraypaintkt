@@ -1,0 +1,100 @@
+name: CI
+# Shared pipeline of maicol07/actions: checks on PRs and main, then on main the release PR, and
+# once it is merged the GitHub Release, Maven Central / GitHub Packages and the docs of that
+# version. A job is overridden by replacing its `uses:` with steps of its own.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Never cancel a release half done on main.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    uses: maicol07/actions/.github/workflows/security.yml@v1
+
+  commit_lint:
+    uses: maicol07/actions/.github/workflows/commit-lint.yml@v1
+
+  # Own workflow: the Multiplatform build needs macOS.
+  test:
+    uses: ./.github/workflows/test.yml
+
+  release:
+    needs: [security, test]
+    if: github.event_name == 'push'
+    uses: maicol07/actions/.github/workflows/release.yml@v1
+    permissions:
+      contents: write
+      pull-requests: write
+    with:
+      # Only x.y.z: the -rcN prereleases are tagged by hand, outside the release PR.
+      tag_pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
+      # After an x.y.z-rcN tag the next release is x.y.z, otherwise git-cliff's bump.
+      next_version: |
+        last=$(git describe --tags --abbrev=0 --match '[0-9]*')
+        case "$last" in
+          *-rc*) echo "${last%%-rc*}" ;;
+          *) cliff --bumped-version ;;
+        esac
+      # The fallback version of local builds; CI passes LIB_VERSION.
+      bump: |
+        sed -i -E 's/(LIB_VERSION"\) \?: ")[^"]*/\1'"$VERSION"'/' build.gradle.kts
+
+  publish:
+    needs: release
+    if: needs.release.outputs.tag
+    runs-on: macos-14
+    permissions:
+      contents: read
+      packages: write
+    env:
+      LIB_VERSION: ${{ needs.release.outputs.tag }}
+      ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_ARMORED_PRIVATE_KEY }}
+      ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.GPG_KEY_ID }}
+      ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_KEY_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+      - uses: actions/setup-java@v6
+        with:
+          java-version: 21
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-disabled: true
+      - run: chmod +x ./gradlew
+      - name: Build & Publish to Maven Central
+        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache --stacktrace
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+      - name: Publish to GitHub Packages
+        run: ./gradlew publishAllPublicationsToGithubPackagesRepository --no-configuration-cache --stacktrace
+        env:
+          ORG_GRADLE_PROJECT_githubPackagesUsername: ${{ github.repository_owner }}
+          ORG_GRADLE_PROJECT_githubPackagesPassword: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release.zip
+          path: '**/build/libs/*.jar'
+
+  docs:
+    needs: release
+    if: needs.release.outputs.tag
+    uses: ./.github/workflows/docs.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    with:
+      tag: ${{ needs.release.outputs.tag }}

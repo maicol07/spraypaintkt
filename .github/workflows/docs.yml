@@ -3,8 +3,12 @@ name: Build & Deploy docs
 on:
   push:
     branches: [ main ]
-  release:
-      types: [ published ]
+  # ci.yml, once a release is created: the docs of that version.
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
 
 jobs:
   build:
@@ -13,6 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.tag }}
           persist-credentials: false
 
       - name: Setup JDK 21
@@ -36,8 +41,8 @@ jobs:
       - name: Build documentation
         run: ./gradlew :dokkatooGenerate
         env:
-          # In case of a release, use the release tag as the version, else use the short SHA concatenated with -SNAPSHOT
-          LIB_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || steps.short-sha.outputs.sha }}${{ github.event_name == 'release' && '' || '-SNAPSHOT' }}
+          # A release's tag, else the short SHA with -SNAPSHOT
+          LIB_VERSION: ${{ inputs.tag || format('{0}-SNAPSHOT', steps.short-sha.outputs.sha) }}
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3

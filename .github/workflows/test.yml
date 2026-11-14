@@ -1,8 +1,7 @@
 name: Tests
+# Called by ci.yml and snapshot.yml. macOS: the Kotlin Multiplatform build configures the Apple
+# targets.
 on:
-  push:
-    branches: [ main ]
-  pull_request:
   workflow_call:
 
 jobs:
