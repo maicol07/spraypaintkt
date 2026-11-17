@@ -1,18 +1,14 @@
 name: "Snapshot build"
+# Called by ci.yml once the tests passed on a main push: they ran once, not here again.
 on:
-  push:
-    branches:
-      - main
+  workflow_call:
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-  test:
-    uses: "./.github/workflows/test.yml"
   build_publish:
-    needs: test
     runs-on: macos-14
     steps:
       - name: Checkout

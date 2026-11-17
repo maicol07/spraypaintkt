@@ -54,6 +54,16 @@ jobs:
       bump: |
         sed -i -E 's/(LIB_VERSION"\) \?: ")[^"]*/\1'"$VERSION"'/' build.gradle.kts
 
+  # Snapshot of every main push (not of the release merge, whose tests are skipped: publish covers it).
+  snapshot:
+    needs: test
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/snapshot.yml
+    permissions:
+      contents: read
+      packages: write
+    secrets: inherit
+
   publish:
     needs: release
     if: needs.release.outputs.tag
