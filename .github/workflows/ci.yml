@@ -19,19 +19,24 @@ permissions:
 
 jobs:
   security:
-    uses: maicol07/actions/.github/workflows/security.yml@v1
+    uses: maicol07/actions/.github/workflows/security.yml@v2
 
   commit_lint:
-    uses: maicol07/actions/.github/workflows/commit-lint.yml@v1
+    uses: maicol07/actions/.github/workflows/commit-lint.yml@v2
 
   # Own workflow: the Multiplatform build needs macOS.
   test:
+    # Not on the release PR nor on its merge, like the shared checks of maicol07/actions@v2.
+    if: &checks >-
+      github.head_ref != 'release/next' && !(github.event_name == 'push' && (
+        startsWith(github.event.head_commit.message, 'chore(release):') ||
+        (startsWith(github.event.head_commit.message, 'Merge pull request') && contains(github.event.head_commit.message, '/release/next'))))
     uses: ./.github/workflows/test.yml
 
   release:
     needs: [security, test]
-    if: github.event_name == 'push'
-    uses: maicol07/actions/.github/workflows/release.yml@v1
+    if: github.event_name == 'push' && !failure() && !cancelled()
+    uses: maicol07/actions/.github/workflows/release.yml@v2
     permissions:
       contents: write
       pull-requests: write
